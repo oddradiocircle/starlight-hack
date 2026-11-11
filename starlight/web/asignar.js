@@ -60,6 +60,9 @@
       case 'base': return v ? `Base ${v.rgb ? v.rgb : nombreColor(v.color).toLowerCase()} ${EFECTO_TXT[v.efecto] || ''}`.trim() : 'Color de la base';
       case 'luz': return v === 'parpadeo' ? 'Hace titilar su luz' : 'Prende y apaga su luz';
       case 'perfil': { const p = (perfiles || []).find(x => x.clave === v); return `Pasa a ${p ? p.nombre : 'otro perfil'}`; }
+      case 'claude_pad': return `Sesión u opción ${v || '?'}`;
+      case 'claude_ir': return v === 'terminada' ? 'Ir a la sesión que terminó' : 'Ir a la sesión que te necesita';
+      case 'claude_tecla': return v && v.teclas && v.teclas.length ? `${v.teclas.map(teclaTxt).join(' + ')} a Claude` : 'Tecla a Claude';
       case 'casa': {
         if (!v || !v.id) return 'Luces de la casa';
         const pct = n => `${Math.round(n * 100)} %`;
@@ -278,6 +281,30 @@
       return seg(otros.map(p => [p.clave, p.nombre]), acc.valor, v => { acc.valor = v; cambio(); }, 'Perfil', true);
     }
     if (pide === 'casa') return campoCasa(a, ctx);
+    if (pide === 'claude_pad') {
+      // 1-4 son los pads del deck A y 5-8 los del B; por defecto, el que corresponde a este pad
+      const propio = /^([AB])\.pad([1-4])$/.exec(a.control);
+      const sugerido = propio ? (propio[1] === 'A' ? 0 : 4) + Number(propio[2]) : 1;
+      if (!(Number(acc.valor) >= 1 && Number(acc.valor) <= 8)) { acc.valor = sugerido; setTimeout(cambio); }
+      const s = el('select', { className: 'campo-txt' });
+      s.setAttribute('aria-label', 'Número de sesión u opción');
+      for (let i = 1; i <= 8; i++) s.add(new Option(`Sesión u opción ${i}`, String(i), false, i === Number(acc.valor)));
+      s.addEventListener('change', () => { acc.valor = Number(s.value); cambio(); });
+      return s;
+    }
+    if (pide === 'claude_ir') {
+      if (!(acc.valor in cat.claude_ir)) { acc.valor = 'espera'; setTimeout(cambio); }
+      return seg(Object.entries(cat.claude_ir), acc.valor, v => { acc.valor = v; cambio(); }, 'A cuál', true);
+    }
+    if (pide === 'claude_tecla') {
+      if (!acc.valor || typeof acc.valor !== 'object' || Array.isArray(acc.valor)) { acc.valor = { teclas: ['esc'], luz: 'interrumpir' }; setTimeout(cambio); }
+      const v = acc.valor;
+      if (!(v.luz in cat.luz_claude)) v.luz = 'sesion';
+      const atajo = { valor: v.teclas || [] };  // campoTeclas edita .valor
+      const teclas = campoTeclas(atajo, () => { v.teclas = atajo.valor; cambio(); });
+      return el('span', { className: 'linea' }, teclas,
+        seg(Object.entries(cat.luz_claude), v.luz, x => { v.luz = x; cambio(); }, 'Su luz se prende', true));
+    }
     acc.valor = null;
     return el('span', { className: 'ayuda-linea', textContent: cat.acciones[tipo].ayuda });
   }

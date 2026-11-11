@@ -38,6 +38,7 @@ from . import declarativo, mapa, sistema
 from .aparato import AparatoDesconectado
 from .casa import Casa
 from .claude import Sesiones
+from .piloto import Piloto
 
 INCLUIDOS = Path(__file__).resolve().parent / "perfiles_incluidos"
 HOGAR = Path(os.environ.get("STARLIGHT_HOGAR") or Path.home() / ".starlight")
@@ -174,6 +175,9 @@ class Perfil:
         self.color_def: dict | None = None  # perfiles JSON: color, efecto, brillo y ciclo al activar
         self.prendidas: set = set()  # luces que el perfil prende al entrar (para devolverlas a su lugar)
         self.sesiones_en: str | None = None  # modo de pads donde se ven las sesiones de Claude Code
+        self.luces_claude: dict = {}  # control -> acción de Claude: su luz la pone el piloto (starlight/piloto.py)
+        self.titileo: float | None = None  # segundos por ciclo del titileo de botones y pads (None = no lo cambia)
+        self.titileo_lento: float | None = None  # el titileo lento («es tu turno»)
         self.modulo, self.error, self.mtime = None, None, 0.0
         self.manejadores: list = []
         self.capa: dict = {}            # solo perfiles en Python: {"asignaciones": [...], "escena": {...}}
@@ -235,6 +239,8 @@ class Perfil:
         self.usa_base = bool(getattr(mod, "usa_base", False))
         self.leer_perillas = bool(getattr(mod, "leer_perillas", True))
         self.sesiones_en = getattr(mod, "sesiones_en", None)
+        self.titileo = getattr(mod, "titileo", None)
+        self.titileo_lento = getattr(mod, "titileo_lento", None)
         self.manejadores = [(patron, fn, al, shift) for fn in vars(mod).values() if callable(fn)
                             for patron, al, shift in getattr(fn, "_starlight", [])]
 
@@ -252,7 +258,11 @@ class Perfil:
         self.color = (d["color"]["color"], d["color"]["efecto"]) if d["color"] and d["color"].get("color") else None
         self.color_def = d["color"]
         self.estados = d["estados"]
-        self.sesiones_en = d.get("sesiones_en")
+        self.luces_claude = declarativo.luces_claude(d["asignaciones"])
+        # con acciones de Claude, los pads los maneja el piloto (Sesiones y Responder), no «sesiones_en»
+        self.sesiones_en = None if self.luces_claude else d.get("sesiones_en")
+        self.titileo = d.get("titileo")
+        self.titileo_lento = d.get("titileo_lento")
         self.prendidas = set(prendidas)
         self.usa_base = False
         self.leer_perillas = d["leer_perillas"]
@@ -298,8 +308,11 @@ class Motor:
         self._shift = False          # Shift presionado ahora (para Shift + Bass/Filter)
         self._claude_estado = None   # estado global de Claude Code que se está mostrando
         self._claude_opciones = None  # cuántas opciones tiene en pantalla la sesión que te necesita
+        self._claude_cuantas = 0      # cuántas sesiones están en ese estado (más = respira o titila más rápido)
+        self._claude_clave = None
         self._titilando: set = set()  # luces que titilan porque Claude Code te necesita
-        self.claude = Sesiones(self._claude_cambio)
+        self.claude = Sesiones(self._claude_cambio, HOGAR / "claude-bloques.json")
+        self.piloto = Piloto(self)
         self.casa = Casa(lambda info: self._anunciar({"tipo": "casa", **info}))
         DE_USUARIO.mkdir(parents=True, exist_ok=True)
         self._escanear()
@@ -370,8 +383,10 @@ class Motor:
             if self.ctx:
                 self._llamar(self.activo, "al_salir", self.ctx)
                 self.ctx._cerrar()
+            self.piloto.salir()
             self.activo, self.ctx = nuevo, (Contexto(self, nuevo) if nuevo else None)
             self._titilando = set()
+            self._claude_clave = None  # que la base se pinte de nuevo con el perfil nuevo
             if nuevo:
                 if nuevo.color_def:
                     self.pintar_color(nuevo.color_def)
@@ -383,8 +398,17 @@ class Motor:
                     self.ctx.luz(c)
                 if nuevo.escena:
                     self._aplicar_escena(nuevo, self.ctx)
+                # después de la escena: lo que declara el perfil manda
+                for ritmo, segundos in (("botones", nuevo.titileo), ("botones_lento", nuevo.titileo_lento)):
+                    if segundos:
+                        try:
+                            self.aparato.poner_ritmo(ritmo, segundos)
+                        except (AparatoDesconectado, ValueError):
+                            pass
+                if nuevo.luces_claude:
+                    self.piloto.entrar()  # pone los pads en Sesiones (Hot Cue) y las luces que sirven
                 if nuevo.estados:
-                    self._pintar_claude()
+                    self.repintar_base()
                 self._pintar_sesiones()
                 if nuevo.leer_perillas:
                     # el aparato responde con la posición de cada perilla y fader, y el perfil la recibe
@@ -451,7 +475,7 @@ class Motor:
         """El estado actual del aparato como escena."""
         f = self.aparato.foto()
         modos = {d: m for d, m in (f.get("modos") or {}).items() if m}
-        titilan = set(getattr(self.aparato, "_titilan", {}) or {})
+        titilan = {k: v[2] for k, v in (getattr(self.aparato, "_titilan", {}) or {}).items()}
         luces = {}
         for k, encendida in (f.get("luces") or {}).items():
             if not encendida:
@@ -460,7 +484,7 @@ class Motor:
             if control in self._titilando:  # titila porque Claude te necesita: no es parte de la escena
                 luces[k] = "fijo"
                 continue
-            luces[k] = "parpadeo" if k in titilan else "fijo"
+            luces[k] = titilan.get(k, "fijo")
         escena = {"brillo": f.get("brillo", 1.0), "ritmo": dict(f.get("ritmo") or {}), "modos": modos, "luces": luces}
         if not (self.activo and self.activo.usa_base):
             b = f.get("base") or {}
@@ -584,11 +608,32 @@ class Motor:
             return bool(self.activo and self.activo.estados.get(estado))
 
     def _claude_cambio(self, resumen: dict):
-        self._anunciar({"tipo": "claude", **resumen})
-        self._pintar_sesiones(resumen)
-        if (resumen["estado"], resumen.get("opciones")) != (self._claude_estado, self._claude_opciones):
-            self._claude_estado, self._claude_opciones = resumen["estado"], resumen.get("opciones")
-            self._pintar_claude()
+        self._anunciar({"tipo": "claude", **resumen, "piloto": self.info_piloto()})
+        if self.piloto.activo():
+            self.piloto.pintar(resumen)
+        else:
+            self._pintar_sesiones(resumen)
+        self.repintar_base(resumen)
+
+    def info_piloto(self) -> dict | None:
+        """En qué vista están los pads y cuál es la sesión actual (para el tablero)."""
+        if not self.piloto.activo():
+            return None
+        return {"vista": self.piloto.vista, "actual": (self.piloto.actual or "")[:8] or None,
+                "responder": (self.piloto.responder or "")[:8] or None}
+
+    def repintar_base(self, resumen: dict | None = None):
+        """Pinta la base si cambió algo que se ve en ella: el estado más urgente, cuántas sesiones
+        están en él (cambia el ritmo), las opciones en pantalla o la vista de los pads."""
+        r = resumen or self.claude.resumen()
+        vista = self.piloto.vista if self.piloto.activo() else None
+        clave = (r["estado"], r.get("opciones"), r.get("cuantas", 0), vista)
+        with self._lock:
+            if clave == self._claude_clave:
+                return
+            self._claude_clave = clave
+            self._claude_estado, self._claude_opciones, self._claude_cuantas = clave[0], clave[1], clave[2]
+        self._pintar_claude()
 
     def _pintar_sesiones(self, resumen: dict | None = None):
         """Los 8 pads, en el modo de pads del perfil, muestran tus sesiones de Claude Code:
@@ -615,6 +660,13 @@ class Motor:
             if not p or not p.estados or not ctx:
                 return
             v = p.estados.get(self._claude_estado) if self._claude_estado else None
+            if v:
+                v = dict(v)
+                if isinstance(v.get("ciclo"), list):  # un ciclo por cantidad: más sesiones, más rápido
+                    n = max(1, self._claude_cuantas or 1)
+                    v["ciclo"] = v["ciclo"][min(n, len(v["ciclo"])) - 1]
+                if self._claude_estado == "esperando" and p.luces_claude and self.piloto.vista == "responder":
+                    v["efecto"] = "fijo"  # ya estás respondiendo: la base deja de llamarte
             try:
                 if v:
                     self.pintar_color(v)
@@ -670,6 +722,9 @@ class Motor:
             with self._lock:
                 p, ctx = self.activo, self.ctx
             if not p or self.pausado:
+                continue
+            if p.luces_claude and ".modo." in e.control and e.presionado:
+                self.piloto.modo(e.control[0], e.control.rsplit(".", 1)[1])  # Hot Cue = Sesiones, Loop = Responder
                 continue
             if p.sesiones_en and e.clase == "pad" and e.modo == p.sesiones_en:
                 continue  # en este modo, los pads muestran tus sesiones de Claude Code

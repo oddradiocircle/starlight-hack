@@ -27,7 +27,7 @@ class Aparato:
         self._dec = mapa.Decodificador()
         self._vivo = True
         self._animaciones: dict = {}   # lado -> (rgb, efecto, inicio): efectos hechos por el servidor
-        self._titilan: dict = {}       # clave de luz -> mensajes (prender, apagar) de las luces que titilan
+        self._titilan: dict = {}       # clave de luz -> (prender, apagar, "parpadeo" o "lento") de las que titilan
         self._titilando = False
         self._animando = False
         # Emisor único del color de la base: los efectos y los perfiles dejan aquí el color deseado
@@ -43,7 +43,9 @@ class Aparato:
             "modos": {"A": None, "B": None},  # modo de pads de cada deck
             "eq": "bajos",                    # la perilla de cada deck: bajos o filtro
             "brillo": 1.0,                    # brillo general de la base, 0 a 1
-            "ritmo": {"parpadeo": 1.0, "respira": 2.4},  # duración de un ciclo de cada efecto, en segundos
+            # duración de un ciclo de cada efecto, en segundos: parpadeo y respira son de la base;
+            # botones y botones_lento, el titileo de las luces de botones y pads (aparte de la base)
+            "ritmo": {"parpadeo": 1.0, "respira": 2.4, "botones": 0.8, "botones_lento": 2.0},
             "avanzado": {"demo": False, "modo_computador": False},  # interruptores SysEx (viven en RAM)
         }
         self._intentar_conectar()
@@ -295,35 +297,42 @@ class Aparato:
         return None
 
     def luz(self, control: str, encendida: bool, efecto: str = "fijo"):
-        self._titilar(control, mapa.msg_luz(control, True), mapa.msg_luz(control, False), encendida and efecto == "parpadeo")
+        """efecto: "fijo", "parpadeo" (titila al ritmo «botones») o "lento" (al ritmo «botones_lento»)."""
+        self._titilar(control, mapa.msg_luz(control, True), mapa.msg_luz(control, False), efecto if encendida else "fijo")
         self.enviar(mapa.msg_luz(control, encendida), avisar=False)
         with self._lock:
             self.estado["luces"][control] = bool(encendida)
         self._emitir({"tipo": "luz", "control": control, "encendida": bool(encendida),
-                      "parpadea": control in self._titilan})
+                      "parpadea": control in self._titilan, "lento": self._titilan.get(control, (0, 0, ""))[2] == "lento"})
 
-    def _titilar(self, clave: str, prender, apagar, activo: bool):
-        if not activo:
+    def _titilar(self, clave: str, prender, apagar, efecto: str):
+        if efecto not in ("parpadeo", "lento"):
             self._titilan.pop(clave, None)
             return
-        self._titilan[clave] = (prender, apagar)
+        self._titilan[clave] = (prender, apagar, efecto)
         if not self._titilando:
             self._titilando = True
             threading.Thread(target=self._bucle_titilar, daemon=True, name="titilar").start()
 
     def _bucle_titilar(self):
-        prendidas = None
+        """Hace titilar las luces; cada una a su ritmo: «botones» (parpadeo) o «botones_lento» (lento).
+        El firmware solo prende y apaga: el titileo lo hace el servidor."""
+        prendidas: dict = {}
         inicio = time.time()
         while self._titilan and self._vivo:
-            ciclo = self.estado["ritmo"].get("parpadeo", 1.0)
-            fase = ((time.time() - inicio) % ciclo) < ciclo / 2
-            if fase != prendidas:
-                prendidas = fase
-                for prender, apagar in list(self._titilan.values()):
+            ritmo = self.estado["ritmo"]
+            transcurrido = time.time() - inicio
+            for clave, (prender, apagar, efecto) in list(self._titilan.items()):
+                ciclo = ritmo.get("botones_lento", 2.0) if efecto == "lento" else ritmo.get("botones", 0.8)
+                fase = (transcurrido % ciclo) < ciclo / 2
+                if prendidas.get(clave) != fase:
+                    prendidas[clave] = fase
                     try:
                         self.enviar(prender if fase else apagar, avisar=False)
                     except AparatoDesconectado:
                         break
+            for clave in [k for k in prendidas if k not in self._titilan]:
+                del prendidas[clave]
             time.sleep(0.02)
         self._titilando = False
 
@@ -332,11 +341,12 @@ class Aparato:
         modo = modo or self.estado["modos"][deck] or "hotcue"
         clave = f"{deck}.pad{pad}.{modo}" + (".shift" if shift else "")
         self._titilar(clave, mapa.msg_pad(deck, pad, True, modo, shift), mapa.msg_pad(deck, pad, False, modo, shift),
-                      encendida and efecto == "parpadeo")
+                      efecto if encendida else "fijo")
         self.enviar(mapa.msg_pad(deck, pad, encendida, modo, shift), avisar=False)
         with self._lock:
             self.estado["luces"][clave] = bool(encendida)
-        self._emitir({"tipo": "luz", "control": clave, "encendida": bool(encendida), "parpadea": clave in self._titilan})
+        self._emitir({"tipo": "luz", "control": clave, "encendida": bool(encendida), "parpadea": clave in self._titilan,
+                      "lento": self._titilan.get(clave, (0, 0, ""))[2] == "lento"})
 
     def _base_lados(self, lado: str, valor: dict):
         with self._lock:
@@ -365,9 +375,10 @@ class Aparato:
         self._emitir({"tipo": "brillo", "valor": valor})
 
     def poner_ritmo(self, efecto: str, segundos: float):
-        """Duración de un ciclo de Parpadea o Respira (0,1 a 10 segundos)."""
-        if efecto not in ("parpadeo", "respira"):
-            raise ValueError("El efecto debe ser parpadeo o respira.")
+        """Duración de un ciclo (0,1 a 10 segundos) de Parpadea o Respira en la base, o del titileo de
+        los botones y pads («botones», el normal, y «botones_lento»)."""
+        if efecto not in ("parpadeo", "respira", "botones", "botones_lento"):
+            raise ValueError("El efecto debe ser parpadeo, respira, botones o botones_lento.")
         with self._lock:
             self.estado["ritmo"][efecto] = min(10.0, max(0.1, float(segundos)))
             ritmo = dict(self.estado["ritmo"])
@@ -405,15 +416,20 @@ class Aparato:
             self._enviado.pop(mapa.LADO_DE_DECK[d], None)
 
     def _emisor_base(self):
+        reenviado: dict = {}
         while self._vivo:
             if self.puerto is not None:
                 factor = self.estado["brillo"] ** 2   # curva aproximada del ojo: 50 % se ve como la mitad
+                ahora = time.monotonic()
                 for lado, rgb in list(self._deseado.items()):
                     final = tuple(round(c * factor) for c in rgb)
-                    if self._enviado.get(lado) != final:
+                    # un color fijo se reenvía cada medio segundo: si el firmware repinta la base por su
+                    # cuenta (al cambiar el modo de los pads, por ejemplo), vuelve enseguida al correcto
+                    if self._enviado.get(lado) != final or ahora - reenviado.get(lado, 0) > 0.5:
                         try:
                             self.sysex(mapa.sysex_base_rgb(*final, lado))
                             self._enviado[lado] = final
+                            reenviado[lado] = ahora
                         except AparatoDesconectado:
                             break
             time.sleep(1 / 60)

@@ -333,3 +333,58 @@ def app_al_frente() -> str:
                 k32.CloseHandle(h)
     _frente = (ahora, nombre)
     return nombre
+
+
+def traer_al_frente(proceso: str) -> bool:
+    """Trae al frente la ventana principal de un programa (por ejemplo «wave»). Solo Windows.
+
+    Windows solo deja pasar al frente una ventana a quien recibió la última entrada del teclado o
+    el mouse; el servidor recibe MIDI, no eso. Por eso se une un momento a la cola de entrada de la
+    ventana que está al frente (AttachThreadInput), el truco habitual.
+    """
+    global _frente
+    if not WIN:
+        return False
+    import ctypes
+    from ctypes import wintypes
+
+    u32, k32 = ctypes.windll.user32, ctypes.windll.kernel32
+    proceso = proceso.lower().removesuffix(".exe")
+    halladas = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def cada(hwnd, _):
+        if not u32.IsWindowVisible(hwnd) or u32.GetWindow(hwnd, 4) or not u32.GetWindowTextLengthW(hwnd):
+            return True  # invisibles, con dueño (diálogos) o sin título: no son la ventana principal
+        pid = wintypes.DWORD()
+        u32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        h = k32.OpenProcess(0x1000, False, pid.value)
+        if h:
+            try:
+                buf, largo = ctypes.create_unicode_buffer(1024), wintypes.DWORD(1024)
+                if k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(largo)) and \
+                        os.path.basename(buf.value).lower().removesuffix(".exe") == proceso:
+                    halladas.append(hwnd)
+                    return False
+            finally:
+                k32.CloseHandle(h)
+        return True
+
+    u32.EnumWindows(cada, 0)
+    if not halladas:
+        return False
+    hwnd = halladas[0]
+    if u32.IsIconic(hwnd):
+        u32.ShowWindow(hwnd, 9)  # SW_RESTORE: estaba minimizada
+    frente = u32.GetForegroundWindow()
+    suyo = u32.GetWindowThreadProcessId(frente, None)
+    mio = k32.GetCurrentThreadId()
+    unido = bool(suyo and suyo != mio and u32.AttachThreadInput(mio, suyo, True))
+    try:
+        ok = bool(u32.SetForegroundWindow(hwnd))
+        u32.BringWindowToTop(hwnd)
+    finally:
+        if unido:
+            u32.AttachThreadInput(mio, suyo, False)
+    _frente = (0.0, "")  # que app_al_frente vuelva a mirar
+    return ok

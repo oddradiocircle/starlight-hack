@@ -2,6 +2,76 @@
 
 La más reciente arriba. Ninguna está aprobada todavía: todas son supuestos que falta revisar con el autor.
 
+Desde D23 también se anotan decisiones del aparato (luces y botones), no solo de la página.
+
+### D31 — En el pad de una sesión, la velocidad del titileo dice la urgencia
+
+- **Fecha:** 2026-11-11
+- **Contexto:** el autor: «¿cómo sabemos cuándo una sesión terminó? Se queda esperando un input, pero no está terminada». En los pads, una sesión que terminó su turno se veía fija, igual que una que trabaja. Aclaró: solo los pads de las sesiones; la base sigue siendo general.
+- **Escogida:** titila rápido = te necesita ya (pregunta, permiso, error); titila lento = terminó y es tu turno, y no la has visto; fijo = abierta (trabajando o ya vista); apagado = no hay sesión. Cada luz titila a su propio ritmo («botones» 0,8 s y «botones_lento» 2 s). Deja de titilar lento cuando vas a verla, también con el mouse: mientras haya sesiones sin ver, el servidor lee cada segundo qué terminal tiene el foco en Wave. No titila hasta que le escribas, porque una sesión que dejaste quieta titilaría para siempre.
+- **Aprobó:** el autor pidió distinguirlo en los pads (2026-11-11); el «hasta que vayas a verla» es la recomendación, sin objeción.
+
+### D30 — Los botones titilan a su propio ritmo
+
+- **Fecha:** 2026-11-11
+- **Contexto:** el autor preguntó si se puede cambiar la frecuencia del titileo de los botones. Los botones usaban el ritmo del parpadeo de la base, que cambia con cada estado (1 s, 0,6 s, 0,25 s en error) y con la escena grabada (0,24 s).
+- **Escogida:** un ritmo aparte, «botones», 0,8 s por ciclo en el perfil Claude Code (clave `titileo`). También por `starlight ritmo botones` y `/api/ritmo`. Así el titileo de un botón siempre significa lo mismo, sin importar qué hace la base.
+- **Aprobó:** supuesto, falta aprobar el valor (0,8 s).
+
+### D29 — Ir a una sesión con los atajos de Wave, y confirmar antes de escribir
+
+- **Fecha:** 2026-11-11
+- **Contexto:** el autor tocaba un pad y Wave no lo llevaba a la sesión. `wsh focusblock` solo enfoca bloques de la pestaña de quien lo llama, y sus sesiones están en otras pestañas.
+- **Opciones:** A un proceso por sesión que se enfoque a sí mismo con sus propias credenciales (tampoco cambia de pestaña); B los atajos de Wave (Alt + N, Ctrl + Shift + N) y leer su base de datos para saber los números y confirmar.
+- **Escogida:** B. Probado en el aparato real del autor: cambió de pestaña y Wave lo confirmó en unos 140 ms. No necesita credenciales de Wave: el servidor ya no tiene que arrancar dentro de Wave. Una respuesta se escribe solo si la base de datos confirma la pestaña y el bloque; si no, la página dice por qué y la sesión sigue esperando. Límite: solo Windows y hasta 9 pestañas y 9 bloques por pestaña.
+- **Aprobó:** supuesto, falta aprobar.
+
+### D28 — Responder apaga el titileo apenas escribe
+
+- **Fecha:** 2026-11-11
+- **Contexto:** el hook de Claude Code tarda cerca de 1 s después de una respuesta; mientras, el pad y la base seguían titilando.
+- **Escogida:** el piloto marca la espera como terminada apenas escribe la respuesta (`FinEspera`). Solo si la escribió: si Wave no quedó al frente, la sesión sigue titilando, porque sigue esperándote. El «No» de un permiso y el Esc cuentan como cancelación (la sesión queda inactiva, no trabajando).
+- **Aprobó:** supuesto, falta aprobar.
+
+### D27 — Las teclas van a la ventana del frente, salvo en Responder
+
+- **Fecha:** 2026-11-11
+- **Contexto:** se propuso que Play, Cue y Sync actuaran sobre la «sesión actual» (la última elegida desde el control).
+- **Opciones:** A ir siempre a la sesión actual; B la ventana del frente; C la del frente, salvo en Responder.
+- **Escogida:** C. Si cambias de sesión con el mouse, el control no se entera, y A mandaría un Enter o un Esc a otra sesión. En Responder la sesión se sabe con certeza.
+- **Aprobó:** supuesto, falta aprobar (cambia lo que se le propuso al autor).
+
+### D26 — El «No» del permiso va en el pad 8; ninguna opción de permiso titila
+
+- **Fecha:** 2026-11-11
+- **Contexto:** el diálogo de permisos tiene 1 Sí, 2 Sí y no volver a preguntar, 3 No.
+- **Escogida:** Sí en el pad 1, «Sí, siempre» en el 2 y No en el 8, lejos. Un error ahí cuesta caro, y el control no debe empujar a aprobar.
+- **Aprobó:** propuesto al autor el 2026-11-11; respondió «organiza…» sin objetarlo.
+
+### D25 — La vista de los pads es el modo de pads
+
+- **Fecha:** 2026-11-11
+- **Contexto:** idea del autor: usar Hot Cue y Loop, fijos y titilando. Prueba en el aparato (2026-11-11): cada pad muestra solo las luces del modo activo de su deck.
+- **Escogida:** Sesiones = Hot Cue; Responder = Loop. La luz del botón de modo dice en qué vista estás, y presionar Hot Cue o Loop cambia de vista. Las 8 sesiones caben siempre; las opciones aparecen solo cuando importan.
+- **Aprobó:** el autor pidió los 8 pads para sesiones y que al ir a una sesión los pads muestren sus opciones (2026-11-11).
+
+### D24 — La base: un color, intensidad y ritmo
+
+- **Fecha:** 2026-11-11
+- **Contexto:** el autor pidió el color de Claude, «minimalista», jugando con intensidad y frecuencia, y que respire más rápido con más terminales trabajando.
+- **Escogida:** un solo color. Primero `#ff4423`: el de Claude (`#D97757`) pasado a luz lineal, porque el LED no aplica la curva del monitor y sin convertir se ve lavado. Al final, `#ff1100` (ver abajo). Respira = trabaja (4 / 3 / 2,2 / 1,6 s según cuántas); titila = te necesita (más rápido si son varias); fija brillante = respondiendo; fija media = terminó; tenue = inactiva; titila muy rápido = error. Cuenta las sesiones que trabajan, no las abiertas: una abierta y quieta no es actividad.
+- **Tope de intensidad: 50 %.** Al 80 y al 100 % el autor vio la base «muy blanca»; le gustó `#ff4423` al 50 % (estado «terminó» en ese momento).
+- **Solo intensidades que conservan el tono.** El LED recibe 7 bits por canal y la intensidad va al cuadrado: al 30 % el color ya se veía distinto, al 12 % era rojo puro y al 6 % la base quedaba apagada.
+- **Color final: `#ff1100`.** Aun así `#ff4423` se veía «medio blanco» quieto (respirando, bien). Dos cambios a la vez lo resolvieron: el servidor reenvía el color fijo cada medio segundo, y el autor eligió `#ff1100` en el editor (casi sin verde, sin azul). Intensidades que conservan su proporción (16 a 1): 100 % (127, 8, 0), 71 % (64, 4, 0), 50 % (32, 2, 0) y 36 % (16, 1, 0). Quedó: trabajando, te necesita, respondiendo y error al 100 %; terminó al 71 %; inactiva al 50 %; sin sesiones al 36 %.
+- **Aprobó:** el autor eligió `#ff1100` en el aparato y aprobó las intensidades: «sí… ya no cambia el color» (2026-11-11).
+
+### D23 — Cada luz dice algo
+
+- **Fecha:** 2026-11-11
+- **Contexto:** el autor: «que la luz indique algo, me lleve, me informe».
+- **Escogida:** fija = presionar sirve ahora; titila = te necesita o es lo recomendado; apagada = ahora no hace nada. Las acciones «Claude: …» traen su propia regla de luz y el motor la aplica sola; por eso esos controles no se prenden al activar el perfil.
+- **Aprobó:** idea del autor (2026-11-11).
+
 ### D22 — Casa: el token no vuelve a la página
 
 - **Fecha:** 2026-11-10

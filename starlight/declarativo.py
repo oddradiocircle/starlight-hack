@@ -38,7 +38,18 @@ ACCIONES = {
     "luz": ("Prender su propia luz", "efecto_luz", "Prende o hace titilar la luz del mismo botón"),
     "perfil": ("Cambiar de perfil", "perfil", "Pasa a otro perfil"),
     "casa": ("Luces de la casa", "casa", "Luces, habitaciones y escenas de Hue o Home Assistant"),
+    # Claude Code: la luz de estos controles la pone el motor según si presionarlos sirve ahora
+    "claude_pad": ("Claude: sesión u opción", "claude_pad",
+                   "Pad de sesión: te lleva a ella. Si te necesita, los pads muestran sus opciones y este responde"),
+    "claude_ir": ("Claude: ir a una sesión", "claude_ir", "Te lleva a su bloque de Wave"),
+    "claude_tecla": ("Claude: tecla", "claude_tecla",
+                     "Manda el atajo a la ventana del frente; si estás respondiendo desde los pads, a esa sesión"),
 }
+CLAUDE_IR = {"espera": "La que te necesita", "terminada": "La que terminó"}
+# cuándo se prende la luz de una «Claude: tecla»: solo cuando presionarla sirve
+LUZ_CLAUDE = {"interrumpir": "Si algo trabaja o te pregunta", "sesion": "Si hay sesiones",
+              "confirmar": "Si hay que confirmar", "nunca": "Nunca"}
+CLAUDE_PADS = 8
 CASA_QUE = {"alternar": "Prende o apaga", "encender": "Prende", "apagar": "Apaga", "escena": "Activa",
             "brillo": "Brillo", "subir": "Sube", "bajar": "Baja", "paso": "Paso a paso", "color": "Color",
             "temperatura": "Temperatura", "play": "Play o pausa", "volumen": "Volumen"}
@@ -60,6 +71,7 @@ def catalogo() -> dict:
     return {"acciones": {k: {"etiqueta": v[0], "valor": v[1], "ayuda": v[2]} for k, v in ACCIONES.items()},
             "cuando": CUANDO, "multimedia": MULTIMEDIA, "efectos": list(mapa.EFECTOS),
             "estados_claude": ESTADOS_CLAUDE, "si_claude": SI_CLAUDE, "casa_que": CASA_QUE,
+            "claude_ir": CLAUDE_IR, "luz_claude": LUZ_CLAUDE,
             "colores": [v[0] for v in mapa.PALETA.values()], "controles": mapa.catalogo()["entradas"],
             "con_luz": mapa.catalogo()["luces"]}
 
@@ -90,6 +102,10 @@ def validar(d: dict) -> dict:
     limpio = {"nombre": nombre, "descripcion": str(d.get("descripcion") or "").strip(), "color": color,
               "leer_perillas": bool(d.get("leer_perillas", True)),
               "estados": estados, "sesiones_en": sesiones_en, "asignaciones": limpias}
+    # segundos por ciclo del titileo de botones y pads: el normal («te necesita») y el lento («es tu turno»)
+    for clave in ("titileo", "titileo_lento"):
+        if isinstance(d.get(clave), (int, float)):
+            limpio[clave] = round(max(0.1, min(5.0, float(d[clave]))), 3)
     escena = validar_escena(d.get("escena"))
     if escena:
         limpio["escena"] = escena
@@ -118,6 +134,11 @@ def validar_color(v: dict, donde: str, por_defecto: str = "verde") -> dict:
         limpio["brillo"] = round(max(0.0, min(1.0, float(v["brillo"]))), 3)
     if isinstance(v.get("ciclo"), (int, float)) and limpio["efecto"] != "fijo":
         limpio["ciclo"] = round(max(0.1, min(10.0, float(v["ciclo"]))), 3)
+    elif isinstance(v.get("ciclo"), list) and limpio["efecto"] != "fijo":
+        # un ciclo por cantidad: [1 sesión, 2, 3, 4 o más]. Así la base respira más rápido con más trabajo
+        ciclos = [round(max(0.1, min(10.0, float(c))), 3) for c in v["ciclo"][:8] if isinstance(c, (int, float))]
+        if ciclos:
+            limpio["ciclo"] = ciclos
     for k in ("titilar",):
         if k in v:
             limpio[k] = v[k]
@@ -167,6 +188,26 @@ def validar_asignaciones(lista) -> list:
             valor = "parpadeo" if valor == "parpadeo" else "fijo"
         if tipo == "perfil" and not str(valor or "").strip():
             raise DefinicionInvalida(f"{donde}: elige a qué perfil pasar.")
+        if tipo == "claude_pad":
+            try:
+                valor = int(valor)
+            except (TypeError, ValueError):
+                valor = 0
+            if not 1 <= valor <= CLAUDE_PADS:
+                raise DefinicionInvalida(f"{donde}: el número de sesión u opción va de 1 a {CLAUDE_PADS}.")
+        if tipo == "claude_ir" and valor not in CLAUDE_IR:
+            raise DefinicionInvalida(f"{donde}: elige a qué sesión ir.")
+        if tipo == "claude_tecla":
+            v = valor if isinstance(valor, dict) else {}
+            teclas = [str(t).strip() for t in (v.get("teclas") or []) if str(t).strip()]
+            if not teclas:
+                raise DefinicionInvalida(f"{donde}: escribe el atajo, por ejemplo esc.")
+            for t in teclas:
+                try:
+                    sistema._vk(t)
+                except ValueError:
+                    raise DefinicionInvalida(f"{donde}: no conozco la tecla «{t}».") from None
+            valor = {"teclas": teclas, "luz": v.get("luz") if v.get("luz") in LUZ_CLAUDE else "sesion"}
         if tipo == "casa":
             v = valor if isinstance(valor, dict) else {}
             if v.get("donde") not in ("ha", "hue") or not str(v.get("id") or "").strip():
@@ -239,7 +280,7 @@ def validar_escena(e) -> dict:
         limpia["brillo"] = max(0.0, min(1.0, float(e["brillo"])))
     if isinstance(e.get("ritmo"), dict):
         limpia["ritmo"] = {k: max(0.1, min(10.0, float(v))) for k, v in e["ritmo"].items()
-                           if k in ("parpadeo", "respira") and isinstance(v, (int, float))}
+                           if k in ("parpadeo", "respira", "botones", "botones_lento") and isinstance(v, (int, float))}
     if isinstance(e.get("modos"), dict):
         limpia["modos"] = {d: m for d, m in e["modos"].items() if d in ("A", "B") and m in mapa.MODOS}
     if isinstance(e.get("luces"), dict):  # clave de la luz -> "fijo" o "parpadeo"
@@ -250,7 +291,7 @@ def validar_escena(e) -> dict:
             es_pad = len(partes) == 3 and partes[0] in ("A", "B") and partes[1] in [f"pad{i}" for i in range(1, 5)] \
                 and partes[2] in mapa.MODOS
             if k in validas or es_pad:
-                luces[k] = "parpadeo" if v == "parpadeo" else "fijo"
+                luces[k] = v if v in ("parpadeo", "lento") else "fijo"
         limpia["luces"] = luces
     return limpia
 
@@ -319,6 +360,12 @@ def _funcion(a: dict):
         return luz
     if tipo == "perfil":
         return lambda e, s: s._motor.activar(v)
+    if tipo == "claude_pad":
+        return lambda e, s: s._motor.piloto.pad(v, e)
+    if tipo == "claude_ir":
+        return lambda e, s: s._motor.piloto.ir(v)
+    if tipo == "claude_tecla":
+        return lambda e, s: s._motor.piloto.tecla(v["teclas"])
     if tipo == "casa":
         def casa(e, s):
             c = getattr(s._motor, "casa", None)
@@ -356,8 +403,21 @@ def construir_asignaciones(asignaciones: list) -> list:
 def luces_de(asignaciones: list) -> list:
     """Controles con luz que tienen una acción: se prenden al activar, para que se vea qué está asignado."""
     con_luz = set(mapa.catalogo()["luces"])
+    # la luz de «luz» y la de los controles con una acción de Claude las manejan ellas mismas
+    # (la de Claude, según si presionar sirve ahora; aunque el control tenga otra acción con Shift)
+    de_claude = set(luces_claude(asignaciones))
     return sorted({a["control"] for a in asignaciones
-                   if a["accion"]["tipo"] not in ("luz",) and (a["control"] in con_luz or ".pad" in a["control"])})
+                   if a["accion"]["tipo"] != "luz" and a["control"] not in de_claude
+                   and (a["control"] in con_luz or ".pad" in a["control"])})
+
+
+def luces_claude(asignaciones: list) -> dict:
+    """Controles con una acción de Claude (sin Shift) -> la acción: el motor les pone la luz."""
+    salida = {}
+    for a in asignaciones:
+        if a["accion"]["tipo"].startswith("claude_") and a["shift"] is not True:
+            salida.setdefault(a["control"], a["accion"])
+    return salida
 
 
 def construir(d: dict):

@@ -315,8 +315,10 @@ def main(argv=None):
     cl.add_argument("estado", choices=["trabajando", "esperando", "listo", "inactivo", "error", "hook", "sesiones", "olvidar"],
                     help="un estado a mano; hook (lee el evento de Claude Code por la entrada); sesiones; olvidar")
     cl.set_defaults(fn=cmd_claude)
-    rt = sub.add_parser("ritmo", help="velocidad de un efecto: segundos que dura un ciclo")
-    rt.add_argument("efecto", choices=["parpadeo", "respira"])
+    rt = sub.add_parser("ritmo", help="velocidad de un efecto: segundos que dura un ciclo "
+                                      "(parpadeo y respira: la base; botones y botones_lento: el titileo "
+                                      "de botones y pads)")
+    rt.add_argument("efecto", choices=["parpadeo", "respira", "botones", "botones_lento"])
     rt.add_argument("segundos", type=float)
     rt.set_defaults(fn=cmd_ritmo)
     br = sub.add_parser("brillo", help="brillo general de la base, de 0 a 100")

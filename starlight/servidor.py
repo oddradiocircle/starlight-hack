@@ -150,7 +150,9 @@ class Manejador(BaseHTTPRequestHandler):
         if r == "/api/perfiles":
             return self._json(self.server.motor.info() if self.server.motor else {"activo": None, "perfiles": []})
         if r == "/api/claude":
-            return self._json(self.server.motor.claude.resumen() if self.server.motor else {"estado": None, "sesiones": []})
+            if not self.server.motor:
+                return self._json({"estado": None, "sesiones": []})
+            return self._json({**self.server.motor.claude.resumen(), "piloto": self.server.motor.info_piloto()})
         if r == "/api/eventos":
             return self._eventos()
         self._error(404, "No existe esa ruta.")
@@ -317,7 +319,7 @@ class Manejador(BaseHTTPRequestHandler):
             elif r == "/api/sysex":
                 return self._json({"respuesta": ap.sysex_libre(bytes.fromhex(b["hex"]))})
             elif r == "/api/ritmo":
-                for efecto in ("parpadeo", "respira"):
+                for efecto in ("parpadeo", "respira", "botones", "botones_lento"):
                     if efecto in b:
                         ap.poner_ritmo(efecto, float(b[efecto]))
                 if self.server.motor:

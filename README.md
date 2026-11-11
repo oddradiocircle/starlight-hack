@@ -13,7 +13,7 @@ Proyecto independiente, sin relación con Hercules. Probado en Windows 11 con la
 ## Qué puedes hacer
 
 - **Manejar el computador.** Cada control hace lo que elijas: un atajo de teclado, pausar la música, el volumen de Windows o de una app, desplazarte, abrir un programa.
-- **Ver tus sesiones de Claude Code.** La luz de la base se pone naranja cuando una sesión te necesita. Respondes con los pads, sin tocar el teclado.
+- **Pilotear tus sesiones de Claude Code.** La base respira en el color de Claude, más rápido mientras más sesiones trabajan, y titila cuando una te necesita. Los 8 pads muestran tus sesiones; uno te lleva a su terminal en Wave, y ahí los pads muestran sus opciones, con la recomendada titilando. Cada luz prendida es algo que puedes hacer.
 - **Prender las luces de tu casa.** Philips Hue y Home Assistant, con un botón o una perilla.
 - **Pintar la luz de la base.** La base son las dos luces de colores que el aparato tiene debajo. Puedes usar 12 colores o cualquier otro, fijos, parpadeando o respirando.
 - **Programarla a tu gusto.** Trae un servidor con una API (una forma de darle órdenes por HTTP desde cualquier programa), una CLI (los comandos `starlight …` de la terminal) y perfiles en Python.
@@ -120,17 +120,57 @@ Los perfiles incluidos no se borran. Si cambias uno, se guarda tu copia en `~/.s
 
 ![La parte del editor que define el color de la base para cada estado de Claude Code: trabajando, te necesita, terminó, inactiva y error. Abajo a la derecha, una Starlight en pequeño muestra cómo se verá.](docs/img/editor-claude.png)
 
-Con el perfil Claude Code activo, la base muestra cómo van tus sesiones:
+El perfil **Claude Code** convierte la Starlight en el tablero de tus sesiones. Sigue un principio: **cada luz dice algo**. Fija = presionar sirve ahora. Titila = te necesita, o es lo que Claude recomienda. Apagada = ahora no hace nada.
+
+**La base**, en el color de Claude, dice cuánto está pasando:
 
 | La base | Qué significa |
 |---|---|
-| Naranja, parpadea | Una sesión te necesita: pide permiso, te hace una pregunta o quiere que apruebes un plan. |
-| Rojo, parpadea | Una respuesta falló. |
-| Celeste, respira | Claude está trabajando. |
-| Verde, fija | Terminó y espera tu siguiente mensaje. |
-| Índigo, fija | La sesión lleva un rato esperando sin que le escribas. |
+| Respira | Claude trabaja. Respira más rápido mientras más sesiones trabajen: cada 4 s con una, 3 s con dos, 2,2 s con tres y 1,6 s con cuatro o más. |
+| Titila | Una sesión te necesita: pide permiso, te hace una pregunta o quiere que apruebes un plan. Titila más rápido si son varias. |
+| Fija y brillante | Estás respondiendo desde los pads. |
+| Fija, a media luz | Terminó y espera tu siguiente mensaje. |
+| Fija y tenue | La sesión lleva un rato sin que le escribas. |
+| Titila muy rápido | Una respuesta falló. |
 
-Con varias sesiones abiertas, la base muestra la más urgente. Cuando Claude te hace una pregunta, titilan tantos pads como opciones haya. Tocas uno y respondes. Los colores se cambian en el editor.
+Con varias sesiones, la base muestra la más urgente. El color, la intensidad y el ritmo se cambian en el editor. El ritmo puede ser una lista, uno por cantidad de sesiones. El color es `#ff1100`, afinado mirando el aparato. Probamos antes el color de Claude (`#D97757`, pasado a luz lineal: `#ff4423`), pero su verde y su azul hacen que el LED se vea blanquecino. Las intensidades son 100 % (trabajando, te necesita, respondiendo y error), 71 % (terminó), 50 % (inactiva) y 36 % (sin sesiones). Solo esas conservan el tono exacto: el LED tiene 128 pasos por canal, y a otras intensidades el verde se redondea distinto y el color cambia.
+
+**Los 8 pads tienen dos vistas, y el modo de pads dice en cuál estás.** El aparato solo muestra las luces del modo activo.
+
+- **Sesiones (Hot Cue).** Un pad por sesión, siempre el mismo. La velocidad del titileo dice la urgencia:
+
+  | El pad | Qué significa |
+  |---|---|
+  | Titila rápido | Te necesita ya: una pregunta, un permiso o un error |
+  | Titila lento | Terminó su turno y espera tu mensaje, y no has ido a verla |
+  | Fijo | Abierta: trabajando, o terminada que ya viste |
+  | Apagado | No hay sesión |
+
+  «Ir a verla» cuenta igual con su pad, con PFL B, con el mouse o con el teclado: mientras haya sesiones terminadas sin ver, el servidor mira cada segundo qué terminal tiene el foco en Wave. Al tocar un pad, Wave te lleva a su terminal. Si te necesita, los pads pasan a Responder.
+- **Responder (Loop).** Lo que esa sesión tiene en pantalla. Si es una pregunta, hay un pad por opción y titila la que Claude recomienda. Si es un permiso: Sí en el pad 1, «Sí, no volver a preguntar» en el 2 y No en el 8, lejos del Sí. Ninguna opción de permiso titila: el control no te empuja a aprobar. Tocar una opción responde y vuelve a Sesiones. Si respondes con el teclado o cancelas, también vuelve sola.
+
+Presionar Hot Cue o Loop en el aparato también cambia de vista.
+
+**Los botones se prenden solo cuando sirven:**
+
+| Botón | Se prende | Al presionar |
+|---|---|---|
+| Play B | Titila si alguna sesión te necesita | Te lleva a la que más lleva esperando |
+| PFL B | Fijo si alguna terminó y no la has visto | Te lleva a la última que terminó |
+| Cue A y Cue B | Fijo si algo trabaja o si estás respondiendo | Esc (Shift + Cue A: Ctrl+C) |
+| Sync A | Fijo si hay sesiones | Shift+Tab: cambia el modo de Claude |
+| Play A | Fijo si hay que confirmar | Enter |
+
+Los botones y los pads titilan a su propio ritmo, aparte de la base: un ciclo cada 0,8 s el rápido y cada 2 s el lento. Se cambian con las claves `"titileo"` y `"titileo_lento"` del perfil (segundos), o en vivo con `starlight ritmo botones 0.5` y `starlight ritmo botones_lento 3`.
+
+Las teclas van a la ventana que tienes al frente. En Responder van a la sesión que estás respondiendo, porque es la única que el control conoce con certeza: si cambias de sesión con el mouse, el control no se entera.
+
+En el editor, estas son las acciones «Claude: sesión u opción», «Claude: ir a una sesión» y «Claude: tecla». Úsalas en tus propios perfiles.
+
+**Límites conocidos (2026-11-11):**
+- Si Claude hace varias preguntas a la vez, o una de selección múltiple, los pads muestran solo la primera pregunta.
+- Para aprobar un plan, el control supone 3 opciones; falta confirmarlo en cada versión de Claude Code.
+- Ir a una sesión funciona solo en Windows, hasta la pestaña 9 y el bloque 9 de cada pestaña (los atajos de Wave llegan hasta 9).
 
 **Para conectarla, agrega los hooks a Claude Code.** Un hook es un comando que Claude Code corre en cada evento. Estos le avisan al servidor:
 
@@ -140,14 +180,22 @@ Con varias sesiones abiertas, la base muestra la más urgente. Cuando Claude te 
 
 Los hooks usan `curl`, que ya viene en Windows 10 y 11, macOS y Linux. Corren en segundo plano y nunca fallan, aunque el servidor esté apagado. De cada evento, el servidor solo lee la sesión, el tipo de evento, la herramienta, la carpeta, el aviso y el texto de las preguntas. No guarda nada en disco.
 
-**Opcional: Wave Terminal.** Si usas [Wave](https://www.waveterm.dev/), [`scripts/wave_hook.sh`](scripts/wave_hook.sh) pinta de naranja el borde de la terminal que te necesita y le pone una insignia verde cuando termina. Agrégalo como un segundo hook en los mismos eventos:
+**Para que los pads te lleven a cada sesión: Wave Terminal.** Ir a una sesión usa [Wave](https://www.waveterm.dev/), aunque la sesión esté en otra pestaña. El servidor trae Wave al frente, cambia de pestaña con **Alt + número** y enfoca la terminal con **Ctrl + Shift + número**: son atajos de Wave. Para saber qué número tiene cada pestaña y cada terminal, lee la base de datos de Wave (`waveterm.db`) en solo lectura, y la vuelve a leer para confirmar que el foco quedó en la terminal correcta. Una respuesta solo se escribe si Wave lo confirmó; si no, la página dice por qué.
+
+Agrega [`scripts/wave_hook.sh`](scripts/wave_hook.sh) como un segundo hook en los mismos eventos. Pinta de naranja el borde de la terminal que te necesita y le pone una insignia verde cuando termina. Además, le dice al servidor en qué bloque de Wave corre cada sesión:
 
 ```json
 { "type": "command", "async": true, "timeout": 10,
   "command": "bash \"/ruta/a/starlight-hack/scripts/wave_hook.sh\" esperando" }
 ```
 
-Usa `esperando` en PreToolUse y en Notification (permission_prompt y elicitation_dialog), `trabajando` en UserPromptSubmit, PostToolUse y SessionEnd, y `listo` en Stop.
+Usa `esperando` en PreToolUse y en Notification (permission_prompt y elicitation_dialog), `trabajando` en UserPromptSubmit, PostToolUse y SessionEnd, y `listo` en Stop. El servidor guarda los bloques en `~/.starlight/claude-bloques.json`, así que un reinicio no los olvida.
+
+Sin Wave, los pads igual muestran tus sesiones y responden, pero en la ventana que esté al frente.
+
+**Cancelar con Esc.** Cuando cancelas una pregunta o un permiso con Esc, Claude Code no avisa a ningún hook: el evento de fin (Stop) no corre si interrumpes. [`scripts/vigilante.sh`](scripts/vigilante.sh) lo resuelve: mientras una sesión te espera, mira su historial, y apenas respondes o cancelas, quita el naranja de Wave y le avisa al servidor. `wave_hook.sh` lo arranca solo. Si no usas Wave, agrégalo como hook en los eventos que esperan (PreToolUse de AskUserQuestion y ExitPlanMode, y Notification de permission_prompt y elicitation_dialog): `bash "/ruta/a/starlight-hack/scripts/vigilante.sh"`.
+
+**Claude Code en WSL.** Los mismos hooks funcionan en el `~/.claude/settings.json` de Linux, con la ruta de Windows vista desde WSL, por ejemplo `bash /mnt/c/Users/<tu usuario>/starlight-hack/scripts/wave_hook.sh esperando`. WSL tiene que llegar a `127.0.0.1:8765`. Con `networkingMode=mirrored` en `%UserProfile%\.wslconfig` llega directo.
 
 ### Las luces de tu casa
 
@@ -170,6 +218,7 @@ starlight base rojo --efecto respira    # color de la paleta (1 a 12, o su nombr
 starlight base "#ff0080" --lado izq     # cualquier color
 starlight base auto                     # la base vuelve a su show normal
 starlight brillo 40                     # brillo de la base, de 0 a 100
+starlight ritmo botones 0.5             # segundos por titileo de botones y pads (también: botones_lento, parpadeo, respira)
 starlight luz A.play on                 # luces: A.play, B.cue, vinyl, bassfilter, A.pad1…
 starlight modo A fx                     # modo de los pads: hotcue, loop, fx, sampler
 starlight perfil navegar                # cambia de perfil
@@ -201,6 +250,7 @@ curl -X POST http://127.0.0.1:8765/api/base -H "Content-Type: application/json" 
 | POST | `/api/midi` | `{"msgs": [[145, 7, 127]]}` | MIDI a mano |
 | POST | `/api/apagar-luces` | `{}` | Apaga las luces y devuelve la base a su show normal |
 | POST | `/api/brillo` | `{"valor": 0.4}` | Brillo de la base (0 a 1) |
+| POST | `/api/ritmo` | `{"botones": 0.5}` · `{"botones_lento": 2}` · `{"parpadeo": 1.0}` · `{"respira": 4}` | Segundos por ciclo: del titileo rápido y lento de botones y pads, o del parpadeo y la respiración de la base |
 | POST | `/api/avanzado` | `{"demo": true}` · `{"modo_computador": true, "entiendo": true}` | Interruptores SysEx del aparato |
 | GET | `/api/sysex/info` · `/api/sysex/crudo` · `/api/sysex/calibracion` | | Lecturas SysEx |
 | POST | `/api/sysex` | `{"hex": "F0 7E 7F 06 01 F7"}` | SysEx a mano; devuelve la respuesta. Grabar la calibración está bloqueado |
@@ -213,7 +263,7 @@ curl -X POST http://127.0.0.1:8765/api/base -H "Content-Type: application/json" 
 | GET | `/api/acciones` | | Catálogo de acciones y condiciones del editor |
 | GET | `/api/claude` | | Estado de cada sesión de Claude Code |
 | POST | `/api/claude` | `{"estado": "listo"}` · `{"olvidar": true}` | Un estado a mano, u olvidar las sesiones |
-| POST | `/api/claude/hook` | el JSON del hook | Lo usan los hooks de Claude Code |
+| POST | `/api/claude/hook` | el JSON del hook | Lo usan los hooks de Claude Code. Además entiende dos eventos propios: `Bloque` (`wave_hook.sh`: en qué bloque de Wave corre la sesión) y `FinEspera` (`vigilante.sh`: respondiste o cancelaste) |
 | GET | `/api/casa` · `/api/casa/cosas` | | Si Home Assistant y Hue están conectados; sus luces y escenas |
 | POST | `/api/casa/ha` | `{"url", "token"}` | Conecta Home Assistant |
 | POST | `/api/casa/ha/buscar` · `/api/casa/hue/buscar` | `{}` | Busca en tu red (mDNS) |
@@ -303,6 +353,10 @@ El aparato responde con el mismo encabezado y tipo `03`, seguido del parámetro,
 
 - **Varios programas a la vez.** En Windows 11, varios programas pueden abrir la Starlight al mismo tiempo y todos reciben lo que tocas. Lo más probable es que venga de Windows MIDI Services. Así, Mixxx y este servidor pueden convivir.
 - **Shift no tiene luz.** Los canales `94`/`95` guardan una segunda capa de luces sin efecto visible.
+- **Cada pad muestra solo las luces del modo activo.** Una luz enviada con la nota de Loop no se ve mientras el deck está en Hot Cue; aparece al pasar a Loop (verificado el 2026-11-11). Por eso el perfil Claude Code usa el modo de pads como vista.
+- **Un color fijo de la base hay que reenviarlo.** Respirando (el servidor lo reenvía 50 veces por segundo) el color siempre se veía bien; fijo, a veces se veía distinto. Desde que el servidor reenvía el color fijo cada medio segundo, ya no cambia (2026-11-11). No sabemos qué hace el firmware para cambiarlo.
+- **Wave: `wsh focusblock` no cruza pestañas.** Solo enfoca bloques de la pestaña de quien lo llama («Block not found in tab»), porque en Wave cada pestaña es una vista aparte. Los atajos sí cruzan: Alt + N cambia a la pestaña N y Ctrl + Shift + N enfoca el bloque N (leído del código de Wave 0.14.5). La base de datos de Wave guarda la pestaña activa y el bloque con foco al instante (unos 140 ms después del atajo).
+- **Bajar la intensidad cambia el tono.** La base tiene 7 bits por canal: a poca luz, los canales débiles se redondean a cero antes que el fuerte. Para que un color se vea igual a varias intensidades, usa las que mantienen la proporción entre canales.
 - **Shift + Bass/Filter no cambia las perillas.** Sin Shift, Bass/Filter pasa las perillas de «bajos» (`B1`/`B2 02`) a «filtro» (`01`). Con Shift sostenido no las cambia; por eso el servidor usa ese atajo para volver al perfil anterior.
 - **La tarjeta de sonido** tiene 4 canales de salida: 1-2 para los parlantes y 3-4 para los audífonos. Windows manda el sonido normal solo a 1-2. No tiene entrada.
 - **Avast Web Shield** a veces corta las respuestas de servidores locales. El servidor lo evita con conexiones persistentes. Si otra herramienta local falla igual, agrega `127.0.0.1` a las excepciones del Web Shield.
@@ -329,14 +383,16 @@ starlight/
   perfiles.py       el motor de perfiles; declarativo.py, los del editor
   sistema.py        teclado, volumen, programas al frente
   claude.py         el estado de las sesiones de Claude Code
+  piloto.py         los pads y botones del perfil Claude Code: vistas, luces que sirven, respuestas
+  wave.py           ir a una terminal de Wave en cualquier pestaña, y confirmarlo
   casa.py           Home Assistant y Philips Hue
   cli.py            los comandos starlight …
   web/              el tablero, el editor, Casa y Pruebas
-scripts/            hooks de ejemplo para Claude Code y Wave, y el show de luces
+scripts/            hooks para Claude Code y Wave (wave_hook.sh, vigilante.sh) y el show de luces
 prototipos/         las primeras versiones, como referencia
 ```
 
-Las decisiones de diseño de la página y su porqué están en [`starlight/web/decisiones-diseno.md`](starlight/web/decisiones-diseno.md).
+Las decisiones de diseño de la página y del aparato, y su porqué, están en [`starlight/web/decisiones-diseno.md`](starlight/web/decisiones-diseno.md).
 
 ## Drivers y dependencias
 
@@ -365,4 +421,4 @@ Hercules y DJControl Starlight son marcas de Guillemot Corporation. Este proyect
 
 ### In English
 
-**starlight-hack** turns the Hercules DJControl Starlight into a general-purpose controller: keyboard shortcuts, media and per-app volume, Philips Hue and Home Assistant lights, and a status light for your Claude Code sessions (orange when a session needs you; answer its questions with the pads). It ships an HTTP API server, a CLI, a web dashboard and a profile editor, plus what we learned about the device's MIDI and private SysEx protocol. Tested on Windows 11; macOS and Linux code paths exist but are untested. Install with `pip install -e .` and run `starlight serve --abrir`. The UI is in Spanish. Issues and pull requests in English are welcome.
+**starlight-hack** turns the Hercules DJControl Starlight into a general-purpose controller: keyboard shortcuts, media and per-app volume, Philips Hue and Home Assistant lights, and a cockpit for your Claude Code sessions: the base light breathes in Claude's color faster as more sessions work and blinks when one needs you; the 8 pads show your sessions and, when one needs you, its options (the recommended one blinks), and a pad takes you to that session's Wave Terminal block. Every lit button is something you can do right now. It ships an HTTP API server, a CLI, a web dashboard and a profile editor, plus what we learned about the device's MIDI and private SysEx protocol. Tested on Windows 11; macOS and Linux code paths exist but are untested. Install with `pip install -e .` and run `starlight serve --abrir`. The UI is in Spanish. Issues and pull requests in English are welcome.

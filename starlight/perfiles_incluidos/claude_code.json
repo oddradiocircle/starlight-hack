@@ -1,50 +1,155 @@
 {
   "nombre": "Claude Code",
-  "descripcion": "Maneja Claude Code en la terminal: Play A envía, Cue A interrumpe, Sync A cambia de modo, pads A eligen la opción 1, 2, 3 o 4, Jog A desplaza y Jog B se mueve en los menús. Cuando una sesión te necesita, titilan los pads de las opciones que hay en pantalla",
+  "descripcion": "Tus sesiones de Claude Code en los 8 pads (Hot Cue): fija = abierta, titila = te necesita; tocar = ir a ella en Wave. Si te necesita, los pads pasan a Loop con sus opciones y titila la recomendada. Play B va a la que te necesita y PFL B a la que terminó. Cue interrumpe, Sync A cambia de modo y Play A envía o confirma. La base, en el color de Claude, respira más rápido con más sesiones trabajando y titila cuando alguna te necesita. Cada luz prendida es algo que puedes hacer ahora",
   "color": {
-    "color": "naranja",
-    "efecto": "fijo"
+    "rgb": "#ff1100",
+    "efecto": "fijo",
+    "brillo": 0.36
   },
   "estados": {
     "trabajando": {
-      "color": "celeste",
-      "efecto": "respira"
+      "rgb": "#ff1100",
+      "efecto": "respira",
+      "brillo": 1.0,
+      "ciclo": [
+        4.0,
+        3.0,
+        2.2,
+        1.6
+      ]
     },
     "esperando": {
-      "color": "naranja",
+      "rgb": "#ff1100",
       "efecto": "parpadeo",
-      "titilar": [
-        "A.play",
-        "A.cue",
-        "A.pad1",
-        "A.pad2",
-        "A.pad3",
-        "A.pad4"
+      "brillo": 1.0,
+      "ciclo": [
+        1.0,
+        0.8,
+        0.6
       ]
     },
     "listo": {
-      "color": "verde",
-      "efecto": "fijo"
+      "rgb": "#ff1100",
+      "efecto": "fijo",
+      "brillo": 0.71
     },
     "inactivo": {
-      "color": "indigo",
-      "efecto": "fijo"
+      "rgb": "#ff1100",
+      "efecto": "fijo",
+      "brillo": 0.5
     },
     "error": {
-      "color": "rojo",
-      "efecto": "parpadeo"
+      "rgb": "#ff1100",
+      "efecto": "parpadeo",
+      "brillo": 1.0,
+      "ciclo": 0.25
     }
   },
+  "titileo": 0.8,
+  "titileo_lento": 2.0,
   "asignaciones": [
+    {
+      "control": "A.pad1",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_pad",
+        "valor": 1
+      }
+    },
+    {
+      "control": "A.pad2",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_pad",
+        "valor": 2
+      }
+    },
+    {
+      "control": "A.pad3",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_pad",
+        "valor": 3
+      }
+    },
+    {
+      "control": "A.pad4",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_pad",
+        "valor": 4
+      }
+    },
+    {
+      "control": "B.pad1",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_pad",
+        "valor": 5
+      }
+    },
+    {
+      "control": "B.pad2",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_pad",
+        "valor": 6
+      }
+    },
+    {
+      "control": "B.pad3",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_pad",
+        "valor": 7
+      }
+    },
+    {
+      "control": "B.pad4",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_pad",
+        "valor": 8
+      }
+    },
+    {
+      "control": "B.play",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_ir",
+        "valor": "espera"
+      }
+    },
+    {
+      "control": "B.pfl",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_ir",
+        "valor": "terminada"
+      }
+    },
     {
       "control": "A.play",
       "al": "presionar",
       "shift": null,
       "accion": {
-        "tipo": "teclas",
-        "valor": [
-          "enter"
-        ]
+        "tipo": "claude_tecla",
+        "valor": {
+          "teclas": [
+            "enter"
+          ],
+          "luz": "confirmar"
+        }
       }
     },
     {
@@ -52,10 +157,13 @@
       "al": "presionar",
       "shift": false,
       "accion": {
-        "tipo": "teclas",
-        "valor": [
-          "esc"
-        ]
+        "tipo": "claude_tecla",
+        "valor": {
+          "teclas": [
+            "esc"
+          ],
+          "luz": "interrumpir"
+        }
       }
     },
     {
@@ -71,68 +179,32 @@
       }
     },
     {
+      "control": "B.cue",
+      "al": "presionar",
+      "shift": null,
+      "accion": {
+        "tipo": "claude_tecla",
+        "valor": {
+          "teclas": [
+            "esc"
+          ],
+          "luz": "interrumpir"
+        }
+      }
+    },
+    {
       "control": "A.sync",
       "al": "presionar",
       "shift": null,
       "accion": {
-        "tipo": "teclas",
-        "valor": [
-          "shift",
-          "tab"
-        ]
-      }
-    },
-    {
-      "control": "A.pad1",
-      "al": "presionar",
-      "shift": false,
-      "accion": {
-        "tipo": "escribir",
-        "valor": "1"
-      }
-    },
-    {
-      "control": "A.pad2",
-      "al": "presionar",
-      "shift": false,
-      "accion": {
-        "tipo": "escribir",
-        "valor": "2"
-      }
-    },
-    {
-      "control": "A.pad3",
-      "al": "presionar",
-      "shift": false,
-      "accion": {
-        "tipo": "escribir",
-        "valor": "3"
-      }
-    },
-    {
-      "control": "A.pad4",
-      "al": "presionar",
-      "shift": false,
-      "si": {
-        "claude": "esperando"
-      },
-      "accion": {
-        "tipo": "escribir",
-        "valor": "4"
-      }
-    },
-    {
-      "control": "A.pad4",
-      "al": "presionar",
-      "shift": false,
-      "si": {
-        "claude": "no_esperando"
-      },
-      "accion": {
-        "tipo": "teclas",
-        "valor": [
-          "arriba"
-        ]
+        "tipo": "claude_tecla",
+        "valor": {
+          "teclas": [
+            "shift",
+            "tab"
+          ],
+          "luz": "sesion"
+        }
       }
     },
     {
@@ -151,28 +223,6 @@
       "accion": {
         "tipo": "flechas",
         "valor": "vertical"
-      }
-    },
-    {
-      "control": "B.play",
-      "al": "presionar",
-      "shift": null,
-      "accion": {
-        "tipo": "teclas",
-        "valor": [
-          "enter"
-        ]
-      }
-    },
-    {
-      "control": "B.cue",
-      "al": "presionar",
-      "shift": null,
-      "accion": {
-        "tipo": "teclas",
-        "valor": [
-          "esc"
-        ]
       }
     }
   ]
