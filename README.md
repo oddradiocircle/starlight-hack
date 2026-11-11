@@ -22,7 +22,7 @@ Proyecto independiente, sin relación con Hercules. Probado en Windows 11 con la
 
 Necesitas:
 
-- Una Hercules DJControl Starlight conectada por USB.
+- Una Hercules DJControl Starlight conectada por USB. No necesitas instalar drivers: mira [Drivers y dependencias](#drivers-y-dependencias).
 - Python 3.10 o más reciente, y Git.
 
 **1. Descarga e instala.** En la terminal:
@@ -337,6 +337,21 @@ prototipos/         las primeras versiones, como referencia
 ```
 
 Las decisiones de diseño de la página y su porqué están en [`starlight/web/decisiones-diseno.md`](starlight/web/decisiones-diseno.md).
+
+## Drivers y dependencias
+
+**No necesitas instalar drivers.** La Starlight es un aparato USB MIDI y de audio estándar («class compliant»): Windows, macOS y Linux la reconocen con los drivers que ya traen ([manual de Mixxx](https://manual.mixxx.org/2.3/en/hardware/controllers/hercules_djcontrol_starlight)).
+
+| Pieza | ¿Hace falta? | De dónde sale | Licencia |
+|---|---|---|---|
+| Driver USB MIDI y de audio del sistema | Sí, y ya viene instalado | Windows, macOS o Linux | La del sistema |
+| Driver de Hercules (ASIO y panel de control) | No. Sirve para ASIO, el audio de baja latencia de los programas de DJ | [Soporte de Hercules](https://support.hercules.com/?p=2797) | Cerrada, de Guillemot Corporation |
+| pycaw, comtypes y psutil (solo Windows) | Sí. `pip` las instala solas | [PyPI](https://pypi.org/) | MIT, MIT y BSD-3-Clause |
+| python-rtmidi (macOS y Linux) | Sí. `pip` la instala sola | [PyPI](https://pypi.org/project/python-rtmidi/) | MIT |
+
+Lo probamos en Windows 11 con el driver de Hercules instalado (`hdjusbaudio` 5.8.9.0, del 2022-10-18). Sin ese driver, Windows usa el suyo. Debería funcionar igual, pero aún no lo hemos probado; si lo pruebas, cuéntanos.
+
+**Por qué el driver de Hercules no viene en este paquete:** es software cerrado de Guillemot, no publica su código fuente y no encontramos un permiso para redistribuirlo. Si lo necesitas, descárgalo de la página oficial: así además tienes la versión más reciente.
 
 ## Licencia
 
