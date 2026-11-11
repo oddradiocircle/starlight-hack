@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starlight</title>
+<link rel="stylesheet" href="comun.css">
+<style>
+.marco { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+/* Encabezado */
+header { display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap; padding: 24px 0 18px; }
+.perfil { display: flex; align-items: center; gap: 10px; }
+.perfil .etiqueta { color: var(--callado); font-size: 12px; }
+header .estado { margin-left: auto; }
+header .enlace { margin-left: auto; color: var(--tinta-2); font-size: 13px; }
+header .enlace + .estado { margin-left: 0; }
+header .enlace + .enlace { margin-left: 0; }
+.aviso-perfil { margin: -6px 0 14px; font-size: 13px; color: var(--mal); }
+.aviso-perfil:empty { display: none; }
+.marca { font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
+.estado { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tinta-2); transition: color .2s; }
+.estado::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--callado); transition: background .2s; }
+.estado[data-e="ok"]::before { background: var(--ok); }
+.estado[data-e="aviso"]::before { background: var(--aviso); }
+.estado[data-e="mal"]::before { background: var(--mal); }
+
+/* El aparato */
+figure { margin: 0; }
+#dibujo { display: block; width: 100%; height: auto; transition: opacity .3s; }
+body.apagado #dibujo { opacity: .35; }
+figure { position: relative; }
+.aviso-aparato { position: absolute; inset: 0 0 24px; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+body.apagado .aviso-aparato { display: flex; }
+.aviso-aparato > div { background: var(--placa); border: 1px solid var(--linea); border-radius: 14px; padding: 18px 24px; max-width: 520px; }
+.aviso-aparato strong { display: block; font-size: 18px; font-weight: 650; }
+.aviso-aparato span { display: block; margin-top: 6px; font-size: 14px; color: var(--tinta-2); }
+.aviso-aparato span:empty { display: none; }
+body.apagado .estado { visibility: hidden; }
+body.apagado .base { fill: var(--linea) !important; animation: none !important; filter: none !important; }
+.pista { margin: 12px 0 0; font-size: 12px; color: var(--callado); text-align: center; }
+body.apagado .pista { visibility: hidden; }
+/* Bajo el dibujo: qué hace un clic y el panel de acciones */
+.bajo-dibujo { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 12px 0 0; flex-wrap: wrap; }
+.bajo-dibujo .pista { margin: 0; }
+body.apagado .bajo-dibujo { visibility: hidden; }
+.zona-accion { margin: 16px auto 0; max-width: 980px; padding: 16px 18px; border-radius: 16px; background: var(--placa); border: 1px solid var(--linea); box-shadow: var(--sombra); }
+.zona-accion[hidden] { display: none; }
+.zona-accion .pie-panel { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--linea); }
+.zona-accion .vacio { margin: 4px 0; font-size: 13px; color: var(--callado); }
+.zona-accion .vacio a { color: var(--tinta-2); }
+#grabar-escena[hidden] { display: none; }
+
+/* Sesiones de Claude Code */
+.bloque.claude[hidden] { display: none; }
+.bloque.claude h2 { display: flex; align-items: baseline; gap: 8px; }
+.bloque.claude h2 span { font-weight: 450; color: var(--callado); font-size: 12px; }
+.sesiones { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.sesiones li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0; }
+.sesiones .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--callado); align-self: center; }
+.sesiones li[data-e="esperando"] .punto { background: var(--aviso); }
+.sesiones li[data-e="trabajando"] .punto { background: var(--tinta-2); }
+.sesiones li[data-e="listo"] .punto { background: var(--ok); }
+.sesiones li[data-e="error"] .punto { background: var(--mal); }
+.sesiones .p { font-size: 13.5px; font-weight: 550; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sesiones .e { display: block; font-size: 12px; color: var(--tinta-2); font-weight: 400; }
+.sesiones li[data-e="esperando"] .e { color: var(--tinta); font-weight: 550; }
+.sesiones .h { font-size: 12px; color: var(--callado); white-space: nowrap; }
+.bloque.claude .enlace-boton { margin-top: 8px; font-size: 12px; }
+.sesiones .h .pad { font-family: var(--mono); color: var(--tinta-2); margin-right: 6px; }
+.sesiones .pide { grid-column: 2 / -1; margin: 2px 0 4px; font-size: 12.5px; color: var(--tinta); }
+.sesiones .pide ol { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.sesiones .pide li { display: flex; gap: 8px; padding: 0; font-size: 12.5px; color: var(--tinta-2); }
+.sesiones .pide kbd { font-family: var(--mono); font-size: 11.5px; color: var(--tinta); min-width: 22px; }
+
+/* Consola */
+.consola { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 40px; padding: 36px 0 56px; }
+.bloque { border-top: 1px solid var(--linea); padding-top: 14px; min-width: 0; }
+.bloque h2 { margin: 0 0 14px; font-size: 13px; font-weight: 650; letter-spacing: .01em; }
+.fila { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.fila > .etiqueta { width: 52px; flex: none; color: var(--callado); font-size: 12px; }
+.fila-velocidad[hidden] { display: none; }
+.fila-velocidad input[type=range] { flex: 0 1 260px; accent-color: var(--tinta); }
+.fila-velocidad output { font-size: 12px; color: var(--tinta-2); min-width: 120px; }
+.fila-brillo input[type=range] { flex: 0 1 260px; accent-color: var(--tinta); }
+.fila-brillo output { font-family: var(--mono); font-size: 12px; color: var(--tinta-2); min-width: 44px; }
+.nota-modo { margin: -4px 0 12px 64px; font-size: 12px; color: var(--callado); max-width: 40ch; }
+#modo-pc.confirmar { background: var(--mal); color: #fff; border-color: transparent; }
+#modo-pc.activo { background: var(--tinta); color: var(--placa); border-color: transparent; }
+.identidad { margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--linea); font-size: 12px; color: var(--callado); font-family: var(--mono); }
+.identidad:empty { display: none; }
+.columna { display: grid; gap: 28px; align-content: start; min-width: 0; }
+.nota-base { margin: -4px 0 12px; font-size: 13px; color: var(--tinta-2); }
+.nota-base:empty { display: none; }
+.bloque.bloqueado > :not(h2):not(.nota-base):not(.fila-brillo) { opacity: .4; filter: grayscale(1); pointer-events: none; }
+.paleta { display: grid; grid-template-columns: repeat(6, 32px); gap: 8px; margin: 4px 0 14px 64px; }
+.muestra { width: 32px; height: 32px; border-radius: 8px; border: 0; background: var(--m); cursor: pointer; position: relative; box-shadow: 0 0 0 1px rgba(0,0,0,.06) inset; transition: transform .15s cubic-bezier(.25,.8,.25,1); }
+.muestra:hover { transform: translateY(-1px); }
+.muestra[aria-pressed="true"]::after { content: ""; position: absolute; inset: 0; margin: auto; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+.paleta-toda { margin: 4px 0 14px 64px; }
+.libre { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; }
+.libre input { width: 120px; height: 44px; padding: 0; border: 1px solid var(--linea); border-radius: 10px; background: var(--placa); cursor: pointer; }
+.libre input::-webkit-color-swatch-wrapper { padding: 4px; } .libre input::-webkit-color-swatch { border: 0; border-radius: 7px; }
+.libre output { font-family: var(--mono); font-size: 13px; color: var(--tinta-2); }
+.paleta-toda[hidden], .paleta[hidden] { display: none; }
+.acciones { display: flex; align-items: center; gap: 12px; margin-left: 64px; }
+.aviso-bloque { margin: 10px 0 0 64px; font-size: 12px; color: var(--mal); }
+.aviso-bloque:empty { display: none; }
+.ultimo-nombre { margin: 0; font-size: 15px; font-weight: 550; min-height: 22px; }
+.ultimo-detalle { margin: 4px 0 0; font-size: 12px; color: var(--callado); }
+.ultimo-detalle code { font-family: var(--mono); font-size: 12px; color: var(--tinta-2); margin-left: 6px; }
+body.apagado .consola .bloque:not(.ultimo) { opacity: .4; filter: grayscale(1); pointer-events: none; }
+.registro { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--linea); }
+.registro:empty { display: none; }
+.registro li { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; line-height: 16px; color: var(--callado); padding: 4px 0; }
+.registro li code { font-family: var(--mono); font-size: 12px; color: var(--callado); }
+
+/* Celular: segundo diseño */
+@media (max-width: 760px) {
+  .marco { padding: 0 16px; }
+  header { padding: 18px 0 12px; flex-wrap: wrap; }
+  #dibujo .etq, #dibujo .rotulo, #dibujo .num, #dibujo .letra { display: none; }
+  #dibujo { pointer-events: none; }
+  .consola { grid-template-columns: 1fr; gap: 28px; padding-top: 24px; }
+  .bloque.ultimo { order: -1; }
+  .nota-modo { margin-left: 0; }
+  .pista { display: none; }
+  .fila { flex-wrap: wrap; }
+  .fila > .etiqueta { width: 100%; }
+  .seg { width: 100%; }
+  .seg button { flex: 1; min-height: 44px; padding: 10px 8px; }
+  .paleta { grid-template-columns: repeat(6, 1fr); margin-left: 0; }
+  .muestra { width: 100%; height: 44px; }
+  .paleta-toda { grid-template-columns: repeat(8, 1fr); margin-left: 0; gap: 6px; }
+    .acciones, .aviso-bloque { margin-left: 0; }
+  .boton-txt { min-height: 44px; }
+}
+</style>
+</head>
+<body class="apagado">
+<div class="marco">
+  <header>
+    <div class="marca">starlight</div>
+    <div class="perfil"><span class="etiqueta">Perfil</span>
+      <div class="seg" id="seg-perfil" role="group" aria-label="Perfil activo"><button data-v="" aria-pressed="true">Ninguno</button></div>
+      <button type="button" class="boton-txt" id="grabar-escena" hidden
+        title="Guarda en el perfil la base, el brillo, la velocidad, las luces y los modos de los pads. Al activarlo, el aparato vuelve a quedar así.">Grabar en el perfil</button>
+    </div>
+    <a class="enlace" href="editor">Editar perfiles</a>
+    <a class="enlace" href="casa">Casa</a>
+    <a class="enlace" href="pruebas">Pruebas</a>
+    <div class="estado" id="estado" role="status" data-e="">Conectando…</div>
+  </header>
+  <p class="aviso-perfil" id="aviso-perfil" role="alert"></p>
+
+  <figure>
+    <svg id="dibujo" viewBox="0 0 1200 372" role="group" aria-label="La Starlight en vivo"></svg>
+    <div class="aviso-aparato" aria-live="polite"><div><strong id="aviso-titulo">Conectando…</strong><span id="aviso-paso"></span></div></div>
+    <div class="bajo-dibujo">
+      <div class="seg" id="seg-dibujo" role="group" aria-label="Qué hace un clic en el dibujo">
+        <button data-v="luces" aria-pressed="true">Luces</button><button data-v="acciones" aria-pressed="false">Acciones</button>
+      </div>
+      <p class="pista" id="pista">Clic en un botón o pad: prende su luz, la segunda vez titila y la tercera la apaga.</p>
+    </div>
+  </figure>
+  <div class="zona-accion" id="zona-accion" hidden aria-live="polite"></div>
+
+  <section class="consola">
+    <div class="bloque" id="bloque-base">
+      <h2>Base</h2>
+      <p class="nota-base" id="nota-base"></p>
+      <div class="fila fila-brillo"><label class="etiqueta" for="brillo">Brillo</label>
+        <input type="range" id="brillo" min="0" max="100" value="100" aria-describedby="brillo-v"><output id="brillo-v">100 %</output>
+      </div>
+      <div class="fila"><span class="etiqueta">Lado</span>
+        <div class="seg" id="seg-lado" role="group" aria-label="Lado de la base">
+          <button data-v="izq" aria-pressed="false">Izquierda</button>
+          <button data-v="ambos" aria-pressed="true">Ambos</button>
+          <button data-v="der" aria-pressed="false">Derecha</button>
+        </div>
+      </div>
+      <div class="fila"><span class="etiqueta">Efecto</span>
+        <div class="seg" id="seg-efecto" role="group" aria-label="Efecto de la base">
+          <button data-v="fijo" aria-pressed="true">Fijo</button>
+          <button data-v="parpadeo" aria-pressed="false">Parpadea</button>
+          <button data-v="respira" aria-pressed="false">Respira</button>
+        </div>
+      </div>
+      <div class="fila"><span class="etiqueta">Colores</span>
+        <div class="seg" id="seg-colores" role="group" aria-label="Qué colores ver">
+          <button data-v="paleta" aria-pressed="true">Paleta · 12</button>
+          <button data-v="todos" aria-pressed="false">Libre</button>
+        </div>
+      </div>
+      <div class="fila fila-velocidad" id="fila-velocidad" hidden><label class="etiqueta" for="velocidad">Velocidad</label>
+        <input type="range" id="velocidad" min="0" max="100" value="50"><output id="velocidad-v"></output>
+      </div>
+      <div class="paleta" id="paleta" role="group" aria-label="Paleta de 12 colores"></div>
+      <div class="paleta-toda" id="paleta-toda" hidden><label class="libre"><input type="color" id="color-libre" value="#ff5a00" aria-label="Color libre"><output id="color-hex">#ff5a00</output></label></div>
+      <div class="acciones">
+        <button class="boton-txt" id="show-normal">Show normal</button>
+      </div>
+      <p class="aviso-bloque" id="aviso-base" aria-live="polite"></p>
+    </div>
+
+    <div class="columna">
+    <div class="bloque">
+      <h2>Pads</h2>
+      <div class="fila"><span class="etiqueta">Deck A</span>
+        <div class="seg seg-modo" data-deck="A" role="group" aria-label="Modo de los pads del deck A">
+          <button data-v="hotcue">Hot Cue</button><button data-v="loop">Loop</button><button data-v="fx">FX</button><button data-v="sampler">Sampler</button>
+        </div>
+      </div>
+      <div class="fila"><span class="etiqueta">Deck B</span>
+        <div class="seg seg-modo" data-deck="B" role="group" aria-label="Modo de los pads del deck B">
+          <button data-v="hotcue">Hot Cue</button><button data-v="loop">Loop</button><button data-v="fx">FX</button><button data-v="sampler">Sampler</button>
+        </div>
+      </div>
+      <p class="aviso-bloque" id="aviso-pads" aria-live="polite" style="margin-left:64px"></p>
+    </div>
+
+    <div class="bloque" id="bloque-aparato">
+      <h2>Aparato</h2>
+      <div class="fila"><span class="etiqueta">Demo</span>
+        <div class="seg" id="seg-demo" role="group" aria-label="Demostración de luces del firmware">
+          <button data-v="off" aria-pressed="true">Apagada</button><button data-v="on" aria-pressed="false">Encendida</button>
+        </div>
+      </div>
+      <div class="fila"><span class="etiqueta">Modo</span>
+        <button class="boton-txt" id="modo-pc">Activar modo computador</button>
+      </div>
+      <p class="nota-modo" id="nota-modo">Sube mucho el volumen y la perilla Master deja de funcionar hasta desconectar el USB.</p>
+      <p class="aviso-bloque" id="aviso-aparato" aria-live="polite"></p>
+      <p class="identidad" id="identidad"></p>
+    </div>
+    </div>
+
+    <div class="columna">
+    <div class="bloque claude" id="bloque-claude" hidden>
+      <h2>Claude Code <span id="claude-cuantas"></span></h2>
+      <ol class="sesiones" id="sesiones" aria-label="Sesiones de Claude Code"></ol>
+      <button type="button" class="enlace-boton" id="olvidar-sesiones">Olvidar estas sesiones</button>
+    </div>
+    <div class="bloque ultimo">
+      <h2>Último control</h2>
+      <p class="ultimo-nombre" id="ultimo-nombre">Toca la Starlight</p>
+      <p class="ultimo-detalle" id="ultimo-detalle">Aquí verás qué control fue, con su código.</p>
+      <ol class="registro" id="registro" aria-label="Controles anteriores"></ol>
+    </div>
+    </div>
+  </section>
+</div>
+
+<script src="dibujo.js"></script>
+<script src="asignar.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const TOKEN = new URLSearchParams(location.search).get('token');
+const conToken = p => TOKEN ? `${p}${p.includes('?') ? '&' : '?'}token=${encodeURIComponent(TOKEN)}` : p;
+const hx = n => n.toString(16).toUpperCase().padStart(2, '0');
+
+const PALETA = [['Fucsia', [200, 0, 100]], ['Salmón', [200, 60, 60]], ['Rojo', [255, 0, 0]], ['Naranja', [255, 92, 0]],
+  ['Amarillo', [255, 240, 16]], ['Lima', [118, 200, 16]], ['Verde', [0, 255, 0]], ['Aguamarina', [50, 255, 160]],
+  ['Celeste', [16, 200, 255]], ['Azul', [0, 0, 255]], ['Índigo', [60, 40, 200]], ['Morado', [100, 0, 200]]];
+const NOMBRE_PALETA = ['fucsia', 'salmon', 'rojo', 'naranja', 'amarillo', 'lima', 'verde', 'aguamarina', 'celeste', 'azul', 'indigo', 'morado'];
+
+let estado = { luces: {}, modos: { A: null, B: null }, base: { modo: 'auto' }, eq: 'bajos', conectado: false };
+
+// ------------------------------------------------------------------ dibujo (dibujo.js)
+// Un clic en el dibujo hace una de dos cosas: prender luces, o ver y cambiar lo que hace el control.
+let modoDibujo = 'luces';
+const dib = StarlightDibujo.dibujar($('#dibujo'), { tocar: alTocarDibujo });
+const piezas = dib.piezas, franja = dib.franja;
+const CON_LUZ = ['A.sync', 'A.cue', 'A.play', 'A.pfl', 'B.pfl', 'vinyl', 'bassfilter', 'B.sync', 'B.cue', 'B.play',
+  'A.modo.hotcue', 'A.modo.loop', 'B.modo.hotcue', 'B.modo.loop', ...['A', 'B'].flatMap(d => [1, 2, 3, 4].map(i => `${d}.pad${i}`))];
+function tocablesSegunModo() {
+  if (modoDibujo === 'acciones') dib.tocables(new Set(dib.ids), n => `Qué hace ${n}`);
+  else dib.tocables(new Set(CON_LUZ), (n, id) => id.includes('.modo.') ? `Modo ${piezas[id].textos.join(' o ')} del deck ${id[0]}` : `Luz de ${n}`);
+}
+function alTocarDibujo(id) {
+  if (modoDibujo === 'acciones') return elegirAccion(id);
+  if (id.includes('.pad')) return alternarPad(id[0], +id.slice(-1));
+  if (id.includes('.modo.')) {
+    const p = piezas[id], deck = id[0];
+    return cambiarModo(deck, estado.modos[deck] === p.par[0] ? p.par[1] : p.par[0]);
+  }
+  alternarLuz(id);
+}
+tocablesSegunModo();
+
+// ------------------------------------------------------------------ pintar estado
+function pintarLuces() {
+  for (const [id, p] of Object.entries(piezas)) {
+    if (!p.g || id.includes('.pad') || id.includes('.modo.') || id.endsWith('jog.toque')) continue;
+    p.g.classList.toggle('encendida', !!estado.luces[id]);
+    p.g.classList.toggle('titila', !!titilan[id]);
+  }
+  for (const deck of ['A', 'B']) {
+    const modo = estado.modos[deck] || 'hotcue';
+    for (let i = 1; i <= 4; i++) {
+      const k = `${deck}.pad${i}.${modo}`;
+      piezas[`${deck}.pad${i}`].g.classList.toggle('encendida', !!estado.luces[k]);
+      piezas[`${deck}.pad${i}`].g.classList.toggle('titila', !!titilan[k]);
+    }
+  }
+}
+function pintarModos() {
+  for (const deck of ['A', 'B']) {
+    const m = estado.modos[deck];
+    for (const principal of ['hotcue', 'loop']) {
+      const p = piezas[`${deck}.modo.${principal}`];
+      const activo = p.par.includes(m);
+      p.g.classList.toggle('encendida', activo);
+      p.rotulo.textContent = m === p.par[1] ? p.textos[1] : p.textos[0];
+    }
+    document.querySelectorAll(`.seg-modo[data-deck="${deck}"] button`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === m)));
+  }
+  pintarLuces();
+}
+function pintarBase() {
+  const b = estado.base;
+  const aHex = rgb => '#' + rgb.map(c => c.toString(16).padStart(2, '0')).join('');
+  const ladoVisto = ladoElegido === 'der' ? 'der' : 'izq';
+  if (b.modo === 'manual' && b[ladoVisto] && document.activeElement !== $('#color-libre')) {
+    $('#color-libre').value = aHex(b[ladoVisto].rgb); $('#color-hex').value = aHex(b[ladoVisto].rgb);
+  }
+  for (const lado of ['izq', 'der']) {
+    const r = franja[lado];
+    r.classList.remove('auto', 'parpadeo', 'respira', 'viva');
+    if (b.modo === 'auto') { r.classList.add('auto'); r.style.removeProperty('--c'); continue; }
+    const v = b[lado] || { rgb: [0, 0, 0], efecto: 'fijo' };
+    const apagada = v.rgb.every(c => c === 0);
+    if (apagada) { r.style.removeProperty('--c'); continue; }
+    r.style.setProperty('--c', `rgb(${v.rgb.join(',')})`);
+    r.classList.add('viva');
+    if (v.efecto !== 'fijo') r.classList.add(v.efecto);
+  }
+  // la consola refleja el lado elegido
+  const lado = ladoElegido === 'der' ? 'der' : 'izq';
+  const v = b.modo === 'manual' ? b[lado] : null;
+  document.querySelectorAll('#paleta .muestra').forEach((m, i) => m.setAttribute('aria-pressed', String(!!v && v.color === NOMBRE_PALETA[i])));
+  if (v) { efectoElegido = v.efecto; marcarSeg('#seg-efecto', v.efecto); pintarRitmo(); }
+  $('#show-normal').setAttribute('aria-pressed', String(b.modo === 'auto'));
+}
+function pintarEq() {
+  for (const d of ['A', 'B']) piezas[`${d}.eq`].etiqueta.textContent = estado.eq === 'filtro' ? 'Filter' : 'Bass';
+  piezas.bassfilter.g.classList.toggle('encendida', !!estado.luces.bassfilter);
+}
+function pintarConexion() {
+  const e = $('#estado');
+  let texto_, clase;
+  if (sinServidorDesde) { texto_ = `Sin conexión con el servidor desde ${sinServidorDesde}`; clase = 'mal'; }
+  else if (!estado.conectado) {
+    const err = estado.error || '';
+    texto_ = (!err || err.startsWith('No encontré') || err.includes('desconectó')) ? 'Conecta la Starlight por USB' : err;
+    clase = 'aviso';
+  } else { texto_ = 'Conectada'; clase = 'ok'; }
+  e.textContent = texto_;
+  e.dataset.e = clase;
+  document.body.classList.toggle('apagado', clase !== 'ok');
+  const paso = sinServidorDesde ? 'Arráncalo con «starlight serve». La página se reconecta sola.'
+    : clase === 'aviso' ? 'La página la detecta sola cuando la conectes.' : '';
+  $('#aviso-titulo').textContent = texto_;
+  $('#aviso-paso').textContent = paso;
+  if (!historial.length) {
+    $('#ultimo-nombre').textContent = clase === 'ok' ? 'Toca la Starlight' : 'Esperando la conexión';
+    $('#ultimo-detalle').textContent = clase === 'ok' ? 'Aquí verás qué control fue, con su código.' : '';
+  }
+  pintarBase();
+}
+
+// ------------------------------------------------------------------ entradas del aparato
+const NOMBRES = { play: 'Play', cue: 'Cue', sync: 'Sync', pfl: 'PFL', 'jog.toque': 'Jog', jog: 'Jog', volumen: 'Volume',
+  tempo: 'Tempo', 'modo.hotcue': 'Hot Cue', 'modo.loop': 'Loop', 'modo.fx': 'FX', 'modo.sampler': 'Sampler' };
+const GLOBALES = { shift: 'Shift', bassfilter: 'Bass/Filter', vinyl: 'Vinyl', crossfader: 'Crossfader', master: 'Master', audifonos: 'Headphones' };
+const MODO_TXT = { hotcue: 'Hot Cue', loop: 'Loop', fx: 'FX', sampler: 'Sampler' };
+function nombreHumano(ev) {
+  if (GLOBALES[ev.control]) return GLOBALES[ev.control] + (ev.shift ? ' con Shift' : '');
+  const [deck, ...resto] = ev.control.split('.');
+  const r = resto.join('.');
+  if (r.startsWith('pad')) return `Pad ${r.slice(3)} ${deck} · ${MODO_TXT[ev.extra.modo]}${ev.shift ? ' con Shift' : ''}`;
+  if (r === 'eq') return `${ev.extra.modo === 'filtro' ? 'Filter' : 'Bass'} ${deck}`;
+  if (deck === 'crudo') return 'Control sin nombre';
+  return `${NOMBRES[r] || r} ${deck}${ev.shift ? ' con Shift' : ''}`;
+}
+function valorHumano(ev) {
+  if (ev.clase === 'jog') return `${ev.valor > 0 ? '+' : ''}${ev.valor} ${Math.abs(ev.valor) === 1 ? 'paso' : 'pasos'}`;
+  if (ev.clase === 'continuo') return `${Math.round(ev.valor * 100)} %`;
+  if (ev.control.endsWith('jog.toque')) return ev.valor ? 'tocado' : 'suelto';
+  return ev.valor ? 'presionado' : 'suelto';
+}
+let pendientes = [];
+const historial = [];
+function pintarHistorial() {
+  const [h, ...antes] = historial;
+  if (!h) return;
+  $('#ultimo-nombre').textContent = h.nombre;
+  const d = $('#ultimo-detalle');
+  d.textContent = h.valor;
+  const c = document.createElement('code');
+  c.textContent = h.codigo;
+  d.appendChild(c);
+  $('#registro').replaceChildren(...antes.map(a => {
+    const li = document.createElement('li');
+    const n = document.createElement('span');
+    n.textContent = `${a.nombre} · ${a.valor}`;
+    const k = document.createElement('code');
+    k.textContent = a.codigo;
+    li.append(n, k);
+    return li;
+  }));
+}
+function mostrarUltimo(ev) {
+  if (pendientes.push(ev) > 1) return;  // ya hay un cuadro de animación pedido
+  requestAnimationFrame(() => {
+    const cola = pendientes; pendientes = [];
+    for (const e of cola) {
+    const nuevo = { control: e.control, nombre: nombreHumano(e), valor: valorHumano(e), codigo: e.crudo.map(hx).join(' ') };
+    // un control que se mueve sin parar (perilla, jog) actualiza su línea en vez de llenar la lista
+    if (historial.length && historial[0].control === nuevo.control && e.clase !== 'boton' && e.clase !== 'pad') historial[0] = nuevo;
+    else historial.unshift(nuevo);
+    historial.length = Math.min(historial.length, 7);
+    }
+    pintarHistorial();
+  });
+}
+function alControl(ev) {
+  const p = piezas[ev.control];
+  if (ev.clase === 'pad' && ev.valor && estado.modos[ev.control[0]] !== ev.extra.modo) {
+    estado.modos[ev.control[0]] = ev.extra.modo; pintarModos();
+  }
+  if (ev.clase === 'boton' || ev.clase === 'pad') {
+    if (p && p.g) p.g.classList.toggle('presionado', ev.valor > 0);
+    if (ev.control.endsWith('jog.toque') && p) p.g.classList.toggle('tocado', ev.valor > 0);
+  } else if (ev.clase === 'continuo') {
+    if (p && p.poner) p.poner(ev.valor);
+    if (ev.control.endsWith('.eq') && estado.eq !== ev.extra.modo) { estado.eq = ev.extra.modo; pintarEq(); }
+  } else if (ev.clase === 'jog') {
+    if (p) p.girar(ev.valor);
+  }
+  mostrarUltimo(ev);
+}
+
+// ------------------------------------------------------------------ órdenes
+async function orden(ruta, cuerpo, aviso) {
+  const caja = aviso ? $(aviso) : null;
+  try {
+    const r = await fetch(conToken(ruta), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'No se pudo hacer.');
+    if (caja) caja.textContent = '';
+  } catch (e) {
+    if (caja) caja.textContent = e.message === 'Failed to fetch' ? 'No hay conexión con el servidor. Revisa que esté corriendo.' : e.message;
+  }
+}
+let titilan = {};
+function siguienteLuz(clave) {  // apagada -> prendida -> titila -> apagada
+  if (!estado.luces[clave]) return { encendida: true };
+  if (!titilan[clave]) return { encendida: true, efecto: 'parpadeo' };
+  return { encendida: false };
+}
+function alternarLuz(id) { orden('/api/luz', { control: id, ...siguienteLuz(id) }); }
+function alternarPad(deck, i) {
+  const modo = estado.modos[deck] || 'hotcue';
+  orden('/api/luz', { control: `${deck}.pad${i}`, modo, ...siguienteLuz(`${deck}.pad${i}.${modo}`) });
+}
+function cambiarModo(deck, modo) { orden('/api/modo', { deck, modo }, '#aviso-pads'); }
+
+// ------------------------------------------------------------------ consola
+let ladoElegido = 'ambos', efectoElegido = 'fijo', colorElegido = null;
+function marcarSeg(sel, v) { document.querySelectorAll(`${sel} button`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); }
+document.querySelectorAll('#seg-lado button').forEach(b => b.addEventListener('click', () => { ladoElegido = b.dataset.v; marcarSeg('#seg-lado', ladoElegido); pintarBase(); }));
+document.querySelectorAll('#seg-efecto button').forEach(b => b.addEventListener('click', () => {
+  efectoElegido = b.dataset.v; marcarSeg('#seg-efecto', efectoElegido); pintarRitmo();
+  const base = estado.base, v = base.modo === 'manual' ? base[ladoElegido === 'der' ? 'der' : 'izq'] : null;
+  const color = colorElegido || (v && v.color);
+  if (color) orden('/api/base', { color, efecto: efectoElegido, lado: ladoElegido }, '#aviso-base');
+  else if (v && v.rgb.some(c => c > 0)) orden('/api/base', { rgb: v.rgb, efecto: efectoElegido, lado: ladoElegido }, '#aviso-base');
+  else $('#aviso-base').textContent = 'Elige un color primero y luego el efecto.';
+}));
+PALETA.forEach(([nombre, rgb], i) => {
+  const m = document.createElement('button');
+  m.className = 'muestra';
+  m.style.setProperty('--m', `rgb(${rgb.join(',')})`);
+  m.title = nombre;
+  m.setAttribute('aria-label', nombre);
+  m.setAttribute('aria-pressed', 'false');
+  m.addEventListener('click', () => { colorElegido = i + 1; orden('/api/base', { color: i + 1, efecto: efectoElegido, lado: ladoElegido }, '#aviso-base'); });
+  $('#paleta').appendChild(m);
+});
+$('#show-normal').addEventListener('click', () => { colorElegido = null; orden('/api/base', { auto: true }, '#aviso-base'); });
+// Color libre: va completo al aparato por el SysEx 7F00 (128 niveles por canal)
+let ultimoLibre = 0;
+$('#color-libre').addEventListener('input', e => {
+  $('#color-hex').value = e.target.value;
+  const ahora = performance.now();
+  if (ahora - ultimoLibre < 40) return;
+  ultimoLibre = ahora; colorElegido = null;
+  orden('/api/base', { rgb: e.target.value, efecto: efectoElegido, lado: ladoElegido }, '#aviso-base');
+});
+$('#color-libre').addEventListener('change', e => orden('/api/base', { rgb: e.target.value, efecto: efectoElegido, lado: ladoElegido }, '#aviso-base'));
+document.querySelectorAll('#seg-colores button').forEach(b => b.addEventListener('click', () => {
+  marcarSeg('#seg-colores', b.dataset.v);
+  $('#paleta').hidden = b.dataset.v !== 'paleta';
+  $('#paleta-toda').hidden = b.dataset.v !== 'todos';
+}));
+document.querySelectorAll('.seg-modo').forEach(s => s.querySelectorAll('button').forEach(b => b.addEventListener('click', () => cambiarModo(s.dataset.deck, b.dataset.v))));
+
+// ------------------------------------------------------------------ velocidad de los efectos
+// El control va de lento (0) a rápido (100) en escala logarítmica, que se siente pareja.
+const RANGO_RITMO = { parpadeo: [2.0, 0.12], respira: [6.0, 0.6] };   // segundos por ciclo: lento, rápido
+let ritmo = { parpadeo: 1.0, respira: 2.4 }, ultimoRitmo = 0;
+const aSegundos = (ef, x) => { const [a, b] = RANGO_RITMO[ef]; return a * Math.pow(b / a, x / 100); };
+const aControl = (ef, s) => { const [a, b] = RANGO_RITMO[ef]; return Math.round(100 * Math.log(s / a) / Math.log(b / a)); };
+const textoRitmo = (ef, s) => ef === 'parpadeo' ? `${(1 / s).toFixed(1).replace('.', ',')} veces por segundo` : `una cada ${s.toFixed(1).replace('.', ',')} s`;
+function pintarRitmo() {
+  const ef = efectoElegido, fila = $('#fila-velocidad');
+  fila.hidden = !(ef in RANGO_RITMO);
+  document.documentElement.style.setProperty('--ciclo', `${ritmo.parpadeo}s`);
+  if (fila.hidden) return;
+  if (document.activeElement !== $('#velocidad')) $('#velocidad').value = aControl(ef, ritmo[ef]);
+  $('#velocidad-v').value = textoRitmo(ef, ritmo[ef]);
+}
+$('#velocidad').addEventListener('input', e => {
+  const ef = efectoElegido, s = aSegundos(ef, +e.target.value);
+  ritmo[ef] = s; $('#velocidad-v').value = textoRitmo(ef, s);
+  const ahora = performance.now();
+  if (ahora - ultimoRitmo < 60) return;
+  ultimoRitmo = ahora;
+  orden('/api/ritmo', { [ef]: s }, '#aviso-base');
+});
+$('#velocidad').addEventListener('change', e => orden('/api/ritmo', { [efectoElegido]: aSegundos(efectoElegido, +e.target.value) }, '#aviso-base'));
+
+// ------------------------------------------------------------------ brillo de la base
+let ultimoBrillo = 0;
+function pintarBrillo(v) {
+  if (document.activeElement === $('#brillo')) return;
+  $('#brillo').value = Math.round(v * 100); $('#brillo-v').value = `${Math.round(v * 100)} %`;
+}
+$('#brillo').addEventListener('input', e => {
+  $('#brillo-v').value = `${e.target.value} %`;
+  const ahora = performance.now();
+  if (ahora - ultimoBrillo < 40) return;
+  ultimoBrillo = ahora;
+  orden('/api/brillo', { valor: e.target.value / 100 }, '#aviso-base');
+});
+$('#brillo').addEventListener('change', e => orden('/api/brillo', { valor: e.target.value / 100 }, '#aviso-base'));
+
+// ------------------------------------------------------------------ aparato (SysEx avanzado)
+let avanzado = { demo: false, modo_computador: false }, confirmarHasta = 0;
+function pintarAvanzado() {
+  marcarSeg('#seg-demo', avanzado.demo ? 'on' : 'off');
+  const b = $('#modo-pc');
+  b.classList.toggle('activo', avanzado.modo_computador);
+  b.classList.remove('confirmar');
+  b.textContent = avanzado.modo_computador ? 'Activo · desconecta el USB para volver' : 'Activar modo computador';
+}
+document.querySelectorAll('#seg-demo button').forEach(b => b.addEventListener('click',
+  () => orden('/api/avanzado', { demo: b.dataset.v === 'on' }, '#aviso-aparato')));
+$('#modo-pc').addEventListener('click', () => {
+  const b = $('#modo-pc');
+  if (avanzado.modo_computador) return;
+  if (performance.now() > confirmarHasta) {  // primer clic: pide confirmar en el mismo botón
+    confirmarHasta = performance.now() + 5000;
+    b.classList.add('confirmar');
+    b.textContent = 'Bajé el volumen: activar';
+    setTimeout(() => { if (performance.now() > confirmarHasta) pintarAvanzado(); }, 5100);
+    return;
+  }
+  confirmarHasta = 0;
+  orden('/api/avanzado', { modo_computador: true, entiendo: true }, '#aviso-aparato');
+});
+async function cargarIdentidad() {
+  try {
+    const r = await fetch(conToken('/api/sysex/info'));
+    if (!r.ok) return;
+    const i = await r.json();
+    $('#identidad').textContent = `Versión ${i.version} · ID ${i.id_chip}`;
+  } catch (e) { /* sin conexión: se intenta al reconectar */ }
+}
+
+// ------------------------------------------------------------------ perfiles
+let perfiles = { activo: null, perfiles: [] };
+function pintarPerfiles() {
+  const seg = $('#seg-perfil');
+  const opciones = [{ clave: '', nombre: 'Ninguno', descripcion: 'La Starlight no hace nada en el computador.' },
+    ...perfiles.perfiles.filter(p => !p.error)];
+  seg.replaceChildren(...opciones.map(p => {
+    const b = document.createElement('button');
+    b.dataset.v = p.clave;
+    b.textContent = p.nombre;
+    b.title = p.descripcion || '';
+    b.setAttribute('aria-pressed', String((perfiles.activo || '') === p.clave));
+    b.addEventListener('click', () => orden('/api/perfil', { nombre: p.clave || null }, '#aviso-perfil'));
+    return b;
+  }));
+  const activo = perfiles.perfiles.find(p => p.clave === perfiles.activo);
+  const bloqueada = !!(activo && activo.usa_base);
+  $('#bloque-base').classList.toggle('bloqueado', bloqueada);
+  $('#nota-base').textContent = bloqueada ? `El perfil ${activo.nombre} está usando la base. Para elegir colores, cambia de perfil.` : '';
+  const conError = perfiles.perfiles.find(p => p.error);
+  if (conError) $('#aviso-perfil').textContent = `El perfil «${conError.nombre}» tiene un error en ${conError.error}. Corrígelo y guarda el archivo.`;
+  $('#grabar-escena').hidden = !perfiles.activo;
+  if (modoDibujo === 'acciones' && accion.clave !== perfiles.activo) { accion.elegido = accion.elegido; cargarAccion(); }
+}
+let borrarAviso = null;
+function avisarErrorPerfil(ev) {
+  $('#aviso-perfil').textContent = ev.perfil ? `El perfil «${ev.perfil}» falló: ${ev.error}` : ev.error;
+  clearTimeout(borrarAviso);
+  borrarAviso = setTimeout(() => { $('#aviso-perfil').textContent = ''; pintarPerfiles(); }, 12000);
+}
+
+// ------------------------------------------------------------------ acciones desde el dibujo
+// Se edita el perfil activo: los JSON directamente; los de Python, con cambios tuyos encima.
+let accion = { clave: null, info: null, def: null, capa: [], elegido: null, sucio: false, cat: null };
+async function pedir(ruta, cuerpo) {
+  const r = await fetch(conToken(ruta), cuerpo === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'No se pudo hacer.');
+  return j;
+}
+const listaAccion = () => accion.info && accion.info.tipo === 'python' ? accion.capa : (accion.def ? accion.def.asignaciones : []);
+async function cargarAccion() {
+  const clave = perfiles.activo;
+  if (accion.sucio && clave === accion.clave) return;
+  accion = { ...accion, clave, info: null, def: null, capa: [], sucio: false };
+  if (!clave) return pintarAccion();
+  try {
+    if (!accion.cat) accion.cat = await pedir('/api/acciones');
+    if (!accion.casa) accion.casa = (await pedir('/api/casa/cosas').catch(() => ({ cosas: [] }))).cosas || [];
+    const info = await pedir(`/api/perfil/definicion?clave=${encodeURIComponent(clave)}`);
+    if (perfiles.activo !== clave) return;
+    accion.info = info;
+    accion.def = info.definicion ? JSON.parse(JSON.stringify(info.definicion)) : null;
+    accion.capa = JSON.parse(JSON.stringify(info.capa || []));
+  } catch (e) { accion.error = e.message; }
+  pintarAccion();
+}
+function marcarAccion() {
+  if (modoDibujo !== 'acciones' || !accion.info) { dib.marcar('asignado', new Set()); dib.marcar('elegido', new Set()); return; }
+  dib.marcar('asignado', Asignar.asignados(listaAccion(), accion.info.manejadores, dib.ids));
+  dib.marcar('elegido', new Set(accion.elegido ? [Asignar.pieza(accion.elegido)] : []));
+}
+function elegirAccion(id) { accion.elegido = id; pintarAccion(); }
+function pintarAccion() {
+  const zona = $('#zona-accion');
+  zona.hidden = modoDibujo !== 'acciones';
+  marcarAccion();
+  if (zona.hidden) return;
+  const { el } = Asignar;
+  if (!perfiles.activo) { zona.replaceChildren(el('p', { className: 'vacio', textContent: 'Activa un perfil arriba para ver y cambiar lo que hace cada control.' })); return; }
+  if (!accion.info) { zona.replaceChildren(el('p', { className: 'vacio', textContent: accion.error || 'Cargando el perfil…' })); return; }
+  const nombre = accion.info.nombre;
+  if (!accion.elegido) {
+    zona.replaceChildren(el('p', { className: 'vacio', textContent: `Clic en un control del dibujo para ver qué hace en ${nombre}. Los que tienen una acción llevan el borde oscuro.` }));
+    return;
+  }
+  const cuerpo = el('div');
+  const estadoGuardar = el('span', { className: 'estado-guardar', textContent: accion.sucio ? 'Cambios sin guardar' : '' });
+  const guardar = el('button', { type: 'button', className: 'boton-txt primario', textContent: `Guardar en ${nombre}` });
+  const editor = el('a', { className: 'enlace-boton derecha', href: conToken(`editor?perfil=${encodeURIComponent(accion.clave)}&control=${encodeURIComponent(accion.elegido)}`), textContent: 'Abrir en el editor' });
+  const avisoPanel = el('p', { className: 'aviso-panel' });
+  guardar.addEventListener('click', async () => {
+    avisoPanel.textContent = '';
+    try {
+      if (accion.info.tipo === 'python') await pedir('/api/perfil/capa', { clave: accion.clave, asignaciones: Asignar.limpiar(accion.capa) });
+      else await pedir('/api/perfil/guardar', { clave: accion.clave, definicion: { ...accion.def, asignaciones: Asignar.limpiar(accion.def.asignaciones) } });
+      accion.sucio = false; estadoGuardar.textContent = '';
+      guardar.classList.add('hecho'); guardar.textContent = 'Guardado';
+      setTimeout(() => { guardar.classList.remove('hecho'); guardar.textContent = `Guardar en ${nombre}`; }, 1600);
+    } catch (e) { avisoPanel.textContent = e.message; }
+  });
+  Asignar.panel(cuerpo, { control: accion.elegido, asignaciones: listaAccion(), manejadores: accion.info.manejadores || [], tipo: accion.info.tipo,
+    cat: accion.cat, perfiles: perfiles.perfiles, casa: accion.casa, clave: accion.clave, alElegir: elegirAccion,
+    alCambiar: () => { accion.sucio = true; estadoGuardar.textContent = 'Cambios sin guardar'; marcarAccion(); } });
+  zona.replaceChildren(cuerpo, el('div', { className: 'pie-panel' }, guardar, estadoGuardar, editor), avisoPanel);
+}
+document.querySelectorAll('#seg-dibujo button').forEach(b => b.addEventListener('click', () => {
+  modoDibujo = b.dataset.v; marcarSeg('#seg-dibujo', modoDibujo); tocablesSegunModo();
+  $('#pista').textContent = modoDibujo === 'acciones'
+    ? 'Clic en un control para ver y cambiar lo que hace en el perfil activo.'
+    : 'Clic en un botón o pad: prende su luz, la segunda vez titila y la tercera la apaga.';
+  if (modoDibujo === 'acciones' && accion.clave !== perfiles.activo) cargarAccion(); else pintarAccion();
+}));
+window.addEventListener('beforeunload', e => { if (accion.sucio) { e.preventDefault(); e.returnValue = ''; } });
+
+// ------------------------------------------------------------------ grabar la escena en el perfil
+$('#grabar-escena').addEventListener('click', async () => {
+  const b = $('#grabar-escena'), activo = perfiles.perfiles.find(p => p.clave === perfiles.activo);
+  try {
+    await pedir('/api/perfil/escena', { clave: perfiles.activo });
+    b.classList.add('hecho'); b.textContent = `Grabado en ${activo ? activo.nombre : 'el perfil'}`;
+    setTimeout(() => { b.classList.remove('hecho'); b.textContent = 'Grabar en el perfil'; }, 2200);
+  } catch (e) { $('#aviso-perfil').textContent = e.message; }
+});
+
+// ------------------------------------------------------------------ sesiones de Claude Code
+let claude = { estado: null, sesiones: [] }, claudeRecibido = 0;
+const ESTADO_CLAUDE = { esperando: 'Te necesita', trabajando: 'Trabajando', listo: 'Terminó', inactivo: 'Inactiva', error: 'Error' };
+function haceTxt(seg) {
+  if (seg < 60) return 'ahora';
+  if (seg < 3600) return `hace ${Math.round(seg / 60)} min`;
+  return `hace ${Math.round(seg / 3600)} h`;
+}
+function pintarClaude() {
+  const lista = claude.sesiones || [];
+  $('#bloque-claude').hidden = !lista.length;
+  if (!lista.length) return;
+  const pasaron = (performance.now() - claudeRecibido) / 1000;
+  $('#claude-cuantas').textContent = lista.length === 1 ? '1 sesión' : `${lista.length} sesiones`;
+  $('#sesiones').replaceChildren(...lista.map(s => {
+    const li = document.createElement('li');
+    li.dataset.e = s.estado;
+    const punto = document.createElement('span'); punto.className = 'punto';
+    const p = document.createElement('span'); p.className = 'p'; p.textContent = s.proyecto; p.title = s.proyecto;
+    const e = document.createElement('span'); e.className = 'e';
+    e.textContent = ESTADO_CLAUDE[s.estado] + (s.motivo ? `: ${s.motivo}` : '');
+    p.append(e);
+    const h = document.createElement('span'); h.className = 'h';
+    if (s.puesto) {  // su pad en el modo de sesiones: A1-A4, B1-B4
+      const pad = document.createElement('span'); pad.className = 'pad';
+      const activo = perfiles.perfiles.find(x => x.clave === perfiles.activo);
+      const modo = activo && activo.sesiones_en;
+      pad.textContent = (modo ? `${MODO_TXT[modo]} ` : '') + (s.puesto <= 4 ? `A${s.puesto}` : `B${s.puesto - 4}`);
+      pad.title = 'El pad de esta sesión cuando los pads están en ese modo';
+      h.append(pad);
+    }
+    h.append(haceTxt(s.hace + pasaron));
+    li.append(punto, p, h);
+    // lo que pide: la pregunta y qué pad (en Hot Cue) elige cada opción
+    const d = s.estado === 'esperando' ? s.detalle : null;
+    if (d) {
+      const pide = document.createElement('div'); pide.className = 'pide';
+      const q = (d.preguntas || [])[0];
+      pide.append(q ? q.texto : (d.texto || ''));
+      const opciones = q ? q.opciones : [];
+      if (opciones.length) {
+        const como = document.createElement('div'); como.className = 'h'; como.textContent = 'Responde con los pads en Hot Cue:';
+        pide.append(como);
+        const ol = document.createElement('ol');
+        opciones.forEach((o, i) => {
+          const fila = document.createElement('li');
+          const k = document.createElement('kbd'); k.textContent = `A${i + 1}`;
+          fila.append(k, o);
+          ol.append(fila);
+        });
+        pide.append(ol);
+      } else if (d.opciones) {
+        const nota = document.createElement('div');
+        nota.className = 'h';
+        nota.textContent = `Responde con los pads A1 a A${d.opciones} en Hot Cue, en el orden de la pantalla.`;
+        pide.append(nota);
+      }
+      li.append(pide);
+    }
+    return li;
+  }));
+}
+function recibirClaude(r) { claude = r || { estado: null, sesiones: [] }; claudeRecibido = performance.now(); pintarClaude(); }
+setInterval(pintarClaude, 15000);
+$('#olvidar-sesiones').addEventListener('click', () => orden('/api/claude', { olvidar: true }));
+
+// ------------------------------------------------------------------ conexión con el servidor
+let sinServidorDesde = null;
+function aplicarEstado(ev) {
+  estado = { ...estado, ...ev, luces: ev.luces || {}, modos: ev.modos || { A: null, B: null } };
+  for (const [id, v] of Object.entries(ev.controles || {})) if (piezas[id] && piezas[id].poner) piezas[id].poner(v);
+  if (ev.perfiles) { perfiles = ev.perfiles; pintarPerfiles(); }
+  if (ev.claude) recibirClaude(ev.claude);
+  if (typeof ev.brillo === 'number') pintarBrillo(ev.brillo);
+  if (ev.ritmo) { ritmo = ev.ritmo; pintarRitmo(); }
+  if (ev.avanzado) { avanzado = ev.avanzado; pintarAvanzado(); }
+  if (ev.conectado) cargarIdentidad();
+  pintarEq(); pintarModos(); pintarBase(); pintarConexion();
+}
+function conectar() {
+  const es = new EventSource(conToken('/api/eventos'));
+  es.onopen = () => { sinServidorDesde = null; pintarConexion(); };
+  es.onerror = () => {
+    if (!sinServidorDesde) {
+      const hora = new Date().toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+      sinServidorDesde = (hora.startsWith('1:') ? 'la ' : 'las ') + hora;
+    }
+    pintarConexion();
+  };
+  es.onmessage = m => {
+    const ev = JSON.parse(m.data);
+    switch (ev.tipo) {
+      case 'estado': aplicarEstado(ev); break;
+      case 'control': alControl(ev); break;
+      case 'luz': estado.luces[ev.control] = ev.encendida; titilan[ev.control] = !!ev.parpadea; pintarLuces(); if (ev.control === 'bassfilter') pintarEq(); break;
+      case 'modo': estado.modos[ev.deck] = ev.modo; pintarModos(); break;
+      case 'base': { const { tipo, ...b } = ev; estado.base = b; pintarBase(); break; }
+      case 'perfiles': {
+        perfiles = ev; pintarPerfiles();
+        // si guardaste desde el editor u otra página, el panel recarga el perfil (salvo cambios tuyos sin guardar)
+        if (modoDibujo === 'acciones' && !accion.sucio) cargarAccion();
+        break;
+      }
+      case 'brillo': pintarBrillo(ev.valor); break;
+      case 'ritmo': { const { tipo, ...r } = ev; ritmo = r; pintarRitmo(); break; }
+      case 'avanzado': { const { tipo, ...a } = ev; avanzado = a; pintarAvanzado(); break; }
+      case 'perfil-error': avisarErrorPerfil(ev); break;
+      case 'claude': { const { tipo, ...r } = ev; recibirClaude(r); break; }
+      case 'conexion': Object.assign(estado, { conectado: ev.conectado, error: ev.error }); pintarConexion(); break;
+    }
+  };
+}
+conectar();
+</script>
+</body>
+</html>

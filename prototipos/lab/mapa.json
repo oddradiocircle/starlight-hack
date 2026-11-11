@@ -1,0 +1,431 @@
+{
+  "entradas": {
+    "B0:03": {
+      "detectado": true,
+      "desc": "¿control nuevo? canal 1 CC 0x03",
+      "nombre": "Volumen master (por confirmar)"
+    },
+    "91:0F": {
+      "detectado": true,
+      "desc": "botón 0x0F deck A",
+      "nombre": "Modo Hot Cue (pads)"
+    },
+    "91:10": {
+      "detectado": true,
+      "desc": "botón 0x10 deck A",
+      "nombre": "Modo Loop (pads)"
+    },
+    "91:08": {
+      "detectado": true,
+      "desc": "Jog (toque arriba) deck A"
+    },
+    "B1:0A": {
+      "detectado": true,
+      "desc": "Jog (scratch) deck A"
+    },
+    "B1:00": {
+      "detectado": true,
+      "desc": "Volumen deck A"
+    },
+    "B1:02": {
+      "detectado": true,
+      "desc": "Bajos (EQ) deck A",
+      "nombre": "Perilla Bajos en modo EQ"
+    },
+    "B2:00": {
+      "detectado": true,
+      "desc": "Volumen deck B"
+    },
+    "B2:02": {
+      "detectado": true,
+      "desc": "Bajos (EQ) deck B"
+    },
+    "90:01": {
+      "detectado": true,
+      "desc": "¿botón nuevo? canal 1 nota 0x01",
+      "nombre": "Modo Bajos/Filtro (confirmado)"
+    },
+    "B0:00": {
+      "detectado": true,
+      "desc": "Crossfader"
+    },
+    "92:10": {
+      "detectado": true,
+      "desc": "botón 0x10 deck B",
+      "nombre": "este y el siguiente hacem los mismo que el otro lado, se conmmutan las luces"
+    },
+    "92:0F": {
+      "detectado": true,
+      "desc": "botón 0x0F deck B"
+    },
+    "B0:04": {
+      "detectado": true,
+      "desc": "¿control nuevo? canal 1 CC 0x04",
+      "nombre": "Headphones volume"
+    },
+    "92:0C": {
+      "detectado": true,
+      "desc": "Auriculares (PFL) deck B"
+    },
+    "91:03": {
+      "detectado": true,
+      "desc": "Vinyl",
+      "nombre": "Vinyl (botón único, avisa a A y B)"
+    },
+    "92:03": {
+      "detectado": true,
+      "desc": "botón 0x03 deck B",
+      "nombre": "Vinyl button"
+    },
+    "92:05": {
+      "detectado": true,
+      "desc": "Sync deck B"
+    },
+    "92:06": {
+      "detectado": true,
+      "desc": "Cue deck B"
+    },
+    "92:07": {
+      "detectado": true,
+      "desc": "Play deck B"
+    },
+    "B2:08": {
+      "detectado": true,
+      "desc": "Tempo (MSB) deck B"
+    },
+    "B2:09": {
+      "detectado": true,
+      "desc": "Jog (borde) deck B"
+    },
+    "92:08": {
+      "detectado": true,
+      "desc": "Jog (toque arriba) deck B"
+    },
+    "B2:0A": {
+      "detectado": true,
+      "desc": "Jog (scratch) deck B"
+    },
+    "B1:09": {
+      "detectado": true,
+      "desc": "Jog (borde) deck A"
+    },
+    "90:03": {
+      "detectado": true,
+      "desc": "SHIFT"
+    },
+    "96:00": {
+      "detectado": true,
+      "desc": "Pad 1 deck A [Hot Cue]"
+    },
+    "96:01": {
+      "detectado": true,
+      "desc": "Pad 2 deck A [Hot Cue]"
+    },
+    "96:02": {
+      "detectado": true,
+      "desc": "Pad 3 deck A [Hot Cue]"
+    },
+    "96:03": {
+      "detectado": true,
+      "desc": "Pad 4 deck A [Hot Cue]"
+    },
+    "96:08": {
+      "detectado": true,
+      "desc": "Pad 1 deck A [Hot Cue +Shift]"
+    },
+    "96:09": {
+      "detectado": true,
+      "desc": "Pad 2 deck A [Hot Cue +Shift]"
+    },
+    "96:0A": {
+      "detectado": true,
+      "desc": "Pad 3 deck A [Hot Cue +Shift]"
+    },
+    "96:0B": {
+      "detectado": true,
+      "desc": "Pad 4 deck A [Hot Cue +Shift]"
+    },
+    "94:08": {
+      "detectado": true,
+      "desc": "Jog (toque arriba) deck A+Shift"
+    },
+    "96:10": {
+      "detectado": true,
+      "desc": "Pad 1 deck A [Loop]"
+    },
+    "96:11": {
+      "detectado": true,
+      "desc": "Pad 2 deck A [Loop]"
+    },
+    "96:12": {
+      "detectado": true,
+      "desc": "Pad 3 deck A [Loop]"
+    },
+    "96:13": {
+      "detectado": true,
+      "desc": "Pad 4 deck A [Loop]"
+    },
+    "91:12": {
+      "detectado": true,
+      "desc": "botón 0x12 deck A",
+      "nombre": "Shift + Loop = modo Sampler"
+    },
+    "96:38": {
+      "detectado": true,
+      "desc": "Pad 1 deck A [Sampler +Shift]"
+    },
+    "96:39": {
+      "detectado": true,
+      "desc": "Pad 2 deck A [Sampler +Shift]"
+    },
+    "96:3A": {
+      "detectado": true,
+      "desc": "Pad 3 deck A [Sampler +Shift]"
+    },
+    "96:3B": {
+      "detectado": true,
+      "desc": "Pad 4 deck A [Sampler +Shift]"
+    },
+    "94:03": {
+      "detectado": true,
+      "desc": "botón 0x03 deck A+Shift"
+    },
+    "95:03": {
+      "detectado": true,
+      "desc": "botón 0x03 deck B+Shift"
+    },
+    "96:18": {
+      "detectado": true,
+      "desc": "Pad 1 deck A [Loop +Shift]"
+    },
+    "96:19": {
+      "detectado": true,
+      "desc": "Pad 2 deck A [Loop +Shift]"
+    },
+    "96:1A": {
+      "detectado": true,
+      "desc": "Pad 3 deck A [Loop +Shift]"
+    },
+    "96:1B": {
+      "detectado": true,
+      "desc": "Pad 4 deck A [Loop +Shift]"
+    },
+    "B1:08": {
+      "detectado": true,
+      "desc": "Tempo (MSB) deck A"
+    },
+    "B1:01": {
+      "detectado": true,
+      "desc": "Filtro deck A",
+      "nombre": "Perilla Bajos en modo Filtro"
+    },
+    "91:11": {
+      "detectado": true,
+      "desc": "botón 0x11 deck A"
+    },
+    "96:20": {
+      "detectado": true,
+      "desc": "Pad 1 deck A [FX]"
+    },
+    "96:21": {
+      "detectado": true,
+      "desc": "Pad 2 deck A [FX]"
+    },
+    "96:22": {
+      "detectado": true,
+      "desc": "Pad 3 deck A [FX]"
+    },
+    "96:23": {
+      "detectado": true,
+      "desc": "Pad 4 deck A [FX]"
+    },
+    "97:10": {
+      "detectado": true,
+      "desc": "Pad 1 deck B [Loop]"
+    },
+    "97:11": {
+      "detectado": true,
+      "desc": "Pad 2 deck B [Loop]"
+    },
+    "97:12": {
+      "detectado": true,
+      "desc": "Pad 3 deck B [Loop]"
+    },
+    "97:13": {
+      "detectado": true,
+      "desc": "Pad 4 deck B [Loop]"
+    },
+    "96:28": {
+      "detectado": true,
+      "desc": "Pad 1 deck A [FX +Shift]"
+    },
+    "96:29": {
+      "detectado": true,
+      "desc": "Pad 2 deck A [FX +Shift]"
+    },
+    "96:2B": {
+      "detectado": true,
+      "desc": "Pad 4 deck A [FX +Shift]"
+    },
+    "96:2A": {
+      "detectado": true,
+      "desc": "Pad 3 deck A [FX +Shift]"
+    },
+    "97:18": {
+      "detectado": true,
+      "desc": "Pad 1 deck B [Loop +Shift]"
+    },
+    "97:19": {
+      "detectado": true,
+      "desc": "Pad 2 deck B [Loop +Shift]"
+    },
+    "97:1B": {
+      "detectado": true,
+      "desc": "Pad 4 deck B [Loop +Shift]"
+    },
+    "97:1A": {
+      "detectado": true,
+      "desc": "Pad 3 deck B [Loop +Shift]"
+    },
+    "97:00": {
+      "detectado": true,
+      "desc": "Pad 1 deck B [Hot Cue]"
+    },
+    "97:01": {
+      "detectado": true,
+      "desc": "Pad 2 deck B [Hot Cue]"
+    },
+    "97:03": {
+      "detectado": true,
+      "desc": "Pad 4 deck B [Hot Cue]"
+    },
+    "97:02": {
+      "detectado": true,
+      "desc": "Pad 3 deck B [Hot Cue]"
+    },
+    "95:08": {
+      "detectado": true,
+      "desc": "Jog (toque arriba) deck B+Shift"
+    },
+    "92:11": {
+      "detectado": true,
+      "desc": "botón 0x11 deck B"
+    },
+    "97:28": {
+      "detectado": true,
+      "desc": "Pad 1 deck B [FX +Shift]"
+    },
+    "97:29": {
+      "detectado": true,
+      "desc": "Pad 2 deck B [FX +Shift]"
+    },
+    "97:2A": {
+      "detectado": true,
+      "desc": "Pad 3 deck B [FX +Shift]"
+    },
+    "97:2B": {
+      "detectado": true,
+      "desc": "Pad 4 deck B [FX +Shift]"
+    },
+    "B5:09": {
+      "detectado": true,
+      "desc": "Jog (borde) deck B+Shift"
+    },
+    "B4:0A": {
+      "detectado": true,
+      "desc": "Jog (scratch) deck A+Shift"
+    },
+    "B4:09": {
+      "detectado": true,
+      "desc": "Jog (borde) deck A+Shift"
+    },
+    "B5:0A": {
+      "detectado": true,
+      "desc": "Jog (scratch) deck B+Shift"
+    },
+    "91:0C": {
+      "detectado": true,
+      "desc": "Auriculares (PFL) deck A"
+    },
+    "91:05": {
+      "detectado": true,
+      "desc": "Sync deck A"
+    },
+    "91:06": {
+      "detectado": true,
+      "desc": "Cue deck A"
+    },
+    "91:07": {
+      "detectado": true,
+      "desc": "Play deck A"
+    }
+  },
+  "luces": {
+    "90:03": {
+      "resultado": "otra",
+      "nota": "la luz no enciende",
+      "valor": 127,
+      "titulo": "Shift · centro"
+    },
+    "91:03": {
+      "resultado": "si",
+      "nota": "",
+      "valor": 127,
+      "titulo": "Vinyl · deck A"
+    },
+    "91:0F": {
+      "resultado": "otra",
+      "nota": "Se conmuta con loop",
+      "valor": 127,
+      "titulo": "¿? (91 0F) · deck A"
+    },
+    "91:10": {
+      "resultado": "otra",
+      "nota": "Si prendió, pero apagó hoy cue... creo que paso lo mismo con 91 10",
+      "valor": 127,
+      "titulo": "¿? (91 10) · deck A"
+    },
+    "91:23": {
+      "resultado": "si",
+      "nota": "",
+      "valor": 99,
+      "titulo": "Base izquierda en 99"
+    },
+    "92:23": {
+      "resultado": "si",
+      "nota": "",
+      "valor": 100,
+      "titulo": "Base derecha en 100"
+    },
+    "90:01": {
+      "resultado": "otra",
+      "nota": "prende y apaga con clci",
+      "valor": 127,
+      "titulo": "¿botón nuevo? canal 1 nota 0x01 · centro"
+    },
+    "92:03": {
+      "resultado": "si",
+      "nota": "Misma luz que 91 03: un solo botón Vinyl a la derecha",
+      "valor": 127,
+      "titulo": "Vinyl por canal B (prueba limpia)"
+    },
+    "91:22": {
+      "resultado": "otra",
+      "nota": "Con valor 7F la base queda roja fija",
+      "valor": 127,
+      "titulo": "COMANDO OCULTO del firmware: color de la base (lado izq.)"
+    },
+    "91:11": {
+      "resultado": "si",
+      "nota": "91 0F/10/11/12 + 7F = modo Hot Cue/Loop/FX/Sampler. Verificado: FX remoto hace parpadear Hot Cue",
+      "valor": 127,
+      "titulo": "COMANDO del firmware: cambiar modo de pads desde el PC"
+    },
+    "94:07": {
+      "resultado": "no",
+      "nota": "94 07 7F solo: apagada siempre, también con Shift. Con 91 07 7F + 94 07 7F: fija (no parpadea). Uso desconocido.",
+      "valor": 127,
+      "titulo": "Segunda capa de luces (firmware) - sin efecto visible"
+    }
+  }
+}

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starlight · Casa</title>
+<link rel="stylesheet" href="comun.css">
+<style>
+.marco { max-width: 1240px; margin: 0 auto; padding: 0 24px 72px; }
+header { display: flex; align-items: center; gap: 20px; padding: 24px 0 22px; }
+.marca { font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
+.marca span { color: var(--callado); font-weight: 450; }
+header nav { margin-left: auto; display: flex; gap: 18px; }
+header a { color: var(--tinta-2); font-size: 13px; }
+.intro { margin: 0 0 22px; max-width: 68ch; color: var(--tinta-2); }
+
+.lados { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.tarjeta { background: var(--placa); border: 1px solid var(--linea); border-radius: 18px; padding: 22px 24px 24px; box-shadow: var(--sombra); }
+.tarjeta h2 { margin: 0; font-size: 16px; font-weight: 650; }
+.estado { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tinta-2); margin: 6px 0 18px; }
+.estado::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--callado); }
+.estado[data-e="ok"]::before { background: var(--ok); }
+.estado[data-e="mal"]::before { background: var(--mal); }
+.campo { display: grid; gap: 6px; margin-bottom: 14px; }
+.campo > span { font-size: 12px; color: var(--callado); }
+.campo .junto { display: flex; gap: 8px; flex-wrap: wrap; }
+.campo .junto .campo-txt { flex: 1; min-width: 200px; }
+.ayuda { font-size: 12.5px; color: var(--callado); margin: 0 0 14px; max-width: 60ch; }
+.ayuda ol { margin: 6px 0 0; padding-left: 18px; }
+.ayuda li { margin: 2px 0; }
+.acciones { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.acciones .derecha { margin-left: auto; }
+.aviso { margin: 12px 0 0; font-size: 13px; color: var(--mal); }
+.aviso:empty { display: none; }
+.hallados { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+
+.cosas { margin-top: 28px; }
+.cosas .cabeza { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
+.cosas h2 { margin: 0; font-size: 16px; font-weight: 650; }
+.cosas .cabeza .campo-txt { margin-left: auto; width: 240px; }
+.grupo-cosas h3 { margin: 18px 0 6px; font-size: 13px; font-weight: 650; color: var(--tinta-2); }
+.lista-cosas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 0 28px; }
+.lista-cosas li { display: grid; grid-template-columns: 10px minmax(120px, 1fr) auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--linea); }
+.lista-cosas .mandos { display: flex; align-items: center; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.lista-cosas .nivel { display: inline-flex; align-items: center; gap: 8px; }
+.lista-cosas .nivel input[type=range] { width: 110px; }
+.lista-cosas .nivel output { font-size: 12px; color: var(--tinta-2); min-width: 38px; text-align: right; }
+.lista-cosas .muestra.libre-m { width: 26px; height: 26px; }
+.escenas-mas { margin-top: 8px; }
+.lista-cosas .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--linea); }
+.lista-cosas .punto.on { background: var(--aviso); }
+@media (max-width: 760px) {
+  .lista-cosas { grid-template-columns: 1fr; }
+  .lista-cosas li { grid-template-columns: 10px minmax(0, 1fr); }
+  .lista-cosas .mandos { grid-column: 2; justify-content: flex-start; }
+}
+.lista-cosas .n { font-size: 13.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lista-cosas .n small { display: block; font-size: 11.5px; color: var(--callado); }
+.vacio { color: var(--callado); font-size: 13px; }
+.nota { margin-top: 18px; font-size: 12.5px; color: var(--callado); max-width: 72ch; }
+
+@media (max-width: 900px) { .lados { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .marco { padding: 0 16px 48px; }
+  .tarjeta { padding: 18px 16px; }
+  .cosas .cabeza .campo-txt { margin-left: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="marca">starlight <span>· casa</span></div>
+    <nav><a href="./">Tablero</a><a href="editor">Perfiles</a><a href="pruebas">Pruebas</a></nav>
+  </header>
+  <p class="intro">Conecta tus luces para usarlas desde la Starlight. Después, en un perfil, elige la acción «Luces de la casa» para un botón o una perilla. Todo pasa dentro de tu red.</p>
+
+  <div class="lados">
+    <section class="tarjeta" aria-labelledby="t-ha">
+      <h2 id="t-ha">Home Assistant</h2>
+      <div class="estado" id="estado-ha" data-e="">Sin conectar</div>
+      <label class="campo"><span>Dirección</span>
+        <div class="junto"><input class="campo-txt" id="ha-url" type="text" placeholder="http://homeassistant.local:8123" autocomplete="off">
+          <button type="button" class="boton-txt" id="ha-buscar">Buscar en mi red</button></div>
+      </label>
+      <div class="hallados" id="ha-hallados"></div>
+      <label class="campo"><span>Token de acceso</span>
+        <input class="campo-txt" id="ha-token" type="password" autocomplete="off" placeholder="Pega aquí el token">
+      </label>
+      <div class="ayuda">Para crear el token:
+        <ol><li>En Home Assistant, abre tu perfil (abajo a la izquierda).</li>
+          <li>Entra a «Seguridad» y busca «Tokens de acceso de larga duración».</li>
+          <li>Crea uno, cópialo y pégalo aquí. Se guarda solo en este equipo y la página no lo vuelve a mostrar.</li></ol></div>
+      <div class="acciones">
+        <button type="button" class="boton-txt primario" id="ha-conectar">Conectar</button>
+        <button type="button" class="enlace-boton derecha" id="ha-olvidar" hidden>Olvidar la conexión</button>
+      </div>
+      <p class="aviso" id="aviso-ha" role="alert"></p>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="t-hue">
+      <h2 id="t-hue">Hue Bridge</h2>
+      <div class="estado" id="estado-hue" data-e="">Sin emparejar</div>
+      <label class="campo"><span>Dirección IP del puente</span>
+        <div class="junto"><input class="campo-txt" id="hue-ip" type="text" placeholder="192.168.1.20" autocomplete="off">
+          <button type="button" class="boton-txt" id="hue-buscar">Buscar en mi red</button></div>
+      </label>
+      <div class="hallados" id="hue-hallados"></div>
+      <div class="ayuda">Para emparejar:
+        <ol><li>Presiona el botón redondo del puente Hue.</li>
+          <li>Antes de 30 segundos, haz clic en «Emparejar».</li></ol></div>
+      <div class="acciones">
+        <button type="button" class="boton-txt primario" id="hue-emparejar">Emparejar</button>
+        <button type="button" class="enlace-boton derecha" id="hue-olvidar" hidden>Olvidar el puente</button>
+      </div>
+      <p class="aviso" id="aviso-hue" role="alert"></p>
+    </section>
+  </div>
+
+  <section class="cosas" aria-labelledby="t-cosas">
+    <div class="cabeza">
+      <h2 id="t-cosas">Luces y escenas</h2>
+      <button type="button" class="enlace-boton" id="recargar">Volver a leer</button>
+      <input class="campo-txt" id="filtro" type="search" placeholder="Buscar por nombre" aria-label="Buscar por nombre">
+    </div>
+    <p class="aviso" id="aviso-cosas" role="alert"></p>
+    <div id="cosas"><p class="vacio">Conecta Home Assistant o el puente Hue para ver aquí tus luces.</p></div>
+    <p class="nota">Si Hue Sync está sincronizando un área, esas luces no responden a la Starlight hasta que pauses la sincronización.</p>
+  </section>
+</div>
+<script src="dibujo.js"></script>
+<script src="asignar.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const { el } = Asignar;
+const TOKEN = new URLSearchParams(location.search).get('token');
+const conToken = p => TOKEN ? `${p}${p.includes('?') ? '&' : '?'}token=${encodeURIComponent(TOKEN)}` : p;
+let info = null, cosas = [];
+
+async function api(ruta, cuerpo) {
+  const r = await fetch(conToken(ruta), cuerpo === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'No se pudo hacer.');
+  return j;
+}
+async function ocupado(boton, texto, fn) {
+  const antes = boton.textContent; boton.disabled = true; boton.textContent = texto;
+  try { return await fn(); } finally { boton.disabled = false; boton.textContent = antes; }
+}
+
+function pintarEstado() {
+  const ha = info.ha, hue = info.hue;
+  const eHa = $('#estado-ha');
+  eHa.dataset.e = ha.error ? 'mal' : ha.conectado ? 'ok' : '';
+  eHa.textContent = ha.error ? ha.error : ha.conectado ? `Conectado · ${ha.cuantas} ${ha.cuantas === 1 ? 'cosa' : 'cosas'}` : 'Sin conectar';
+  if (ha.url && !$('#ha-url').value) $('#ha-url').value = ha.url;
+  $('#ha-token').placeholder = ha.conectado ? 'Ya hay un token guardado. Pega otro solo para cambiarlo.' : 'Pega aquí el token';
+  $('#ha-conectar').textContent = ha.conectado ? 'Guardar cambios' : 'Conectar';
+  $('#ha-olvidar').hidden = !ha.conectado;
+  const eHue = $('#estado-hue');
+  eHue.dataset.e = hue.error ? 'mal' : hue.emparejado ? 'ok' : '';
+  eHue.textContent = hue.error ? hue.error : hue.emparejado ? `Emparejado · ${hue.cuantas} ${hue.cuantas === 1 ? 'cosa' : 'cosas'}` : 'Sin emparejar';
+  if (hue.ip && !$('#hue-ip').value) $('#hue-ip').value = hue.ip;
+  $('#hue-emparejar').textContent = hue.emparejado ? 'Emparejar otra vez' : 'Emparejar';
+  $('#hue-olvidar').hidden = !hue.emparejado;
+}
+
+// Manda una orden a una cosa. Un deslizador manda como mucho 8 por segundo y siempre el último valor.
+async function mandar(c, que, valor) {
+  $('#aviso-cosas').textContent = '';
+  try { await api('/api/casa/probar', { donde: c.donde, id: c.id, que, ...(que === 'color' ? { rgb: valor } : { valor }) }); return true; }
+  catch (e) { $('#aviso-cosas').textContent = `${c.nombre}: ${e.message}`; return false; }
+}
+function deslizador(c, que, etiqueta, valor, alMover) {
+  const r = el('input', { type: 'range', min: 0, max: 100, value: Math.round((valor || 0) * 100) });
+  r.setAttribute('aria-label', `${etiqueta} de ${c.nombre}`);
+  const salida = el('output', { textContent: `${r.value} %` });
+  let ultimo = 0, pendiente = null;
+  const enviar = () => { ultimo = performance.now(); pendiente = null; mandar(c, que, r.value / 100); };
+  r.addEventListener('input', () => {
+    salida.textContent = `${r.value} %`; if (alMover) alMover(+r.value);
+    const falta = 125 - (performance.now() - ultimo);
+    if (falta <= 0) enviar(); else if (!pendiente) pendiente = setTimeout(enviar, falta);
+  });
+  return el('label', { className: 'nivel', title: etiqueta }, r, salida);
+}
+function mandos(c, punto) {
+  const puede = c.puede || ['onoff'], hijos = [];
+  if (puede.includes('activar')) {
+    const b = el('button', { type: 'button', className: 'boton-txt', textContent: 'Activar' });
+    b.addEventListener('click', () => ocupado(b, 'Activando…', () => mandar(c, 'escena')));
+    return [b];
+  }
+  if (puede.includes('play')) {
+    const b = el('button', { type: 'button', className: 'boton-txt', textContent: 'Play o pausa' });
+    b.addEventListener('click', () => ocupado(b, 'Enviando…', () => mandar(c, 'play')));
+    hijos.push(b);
+    if (puede.includes('volumen') && typeof c.nivel === 'number') hijos.push(deslizador(c, 'volumen', 'Volumen', c.nivel));
+    return hijos;
+  }
+  // luces e interruptores
+  const onoff = el('button', { type: 'button', className: 'boton-txt' });
+  const pintarOnoff = () => { onoff.textContent = c.encendida ? 'Apagar' : 'Prender'; punto.classList.toggle('on', !!c.encendida); };
+  pintarOnoff();
+  onoff.addEventListener('click', () => ocupado(onoff, 'Enviando…', async () => {
+    if (await mandar(c, c.encendida ? 'apagar' : 'encender')) c.encendida = !c.encendida;
+  }).then(pintarOnoff));
+  hijos.push(onoff);
+  if (puede.includes('brillo')) hijos.push(deslizador(c, 'brillo', 'Brillo', c.nivel, v => { c.encendida = v > 0; pintarOnoff(); }));
+  if (puede.includes('color')) {
+    const entrada = el('input', { type: 'color', value: '#ffb36b' });
+    entrada.setAttribute('aria-label', `Color de ${c.nombre}`);
+    const caja = el('label', { className: 'muestra libre-m', title: 'Color' }, entrada);
+    let ultimo = 0;
+    entrada.addEventListener('input', () => {
+      caja.style.setProperty('--m', entrada.value); caja.classList.add('con-color');
+      if (performance.now() - ultimo > 150) { ultimo = performance.now(); mandar(c, 'color', entrada.value); }
+    });
+    entrada.addEventListener('change', () => mandar(c, 'color', entrada.value));
+    hijos.push(caja);
+  }
+  return hijos;
+}
+function pintarCosas() {
+  const f = $('#filtro').value.trim().toLowerCase();
+  const caja = $('#cosas');
+  if (!cosas.length) { caja.replaceChildren(el('p', { className: 'vacio', textContent: 'Conecta Home Assistant o el puente Hue para ver aquí tus luces.' })); return; }
+  const orden = { luz: 0, aparato: 1, reproductor: 2, escena: 3 };
+  const grupos = [['hue', 'Hue'], ['ha', 'Home Assistant']].map(([d, t]) => {
+    const lista = cosas.filter(c => c.donde === d && (!f || c.nombre.toLowerCase().includes(f)));
+    if (!lista.length) return null;
+    lista.sort((a, b) => (orden[a.tipo] ?? 9) - (orden[b.tipo] ?? 9) || a.clase.localeCompare(b.clase) || a.nombre.localeCompare(b.nombre));
+    return el('div', { className: 'grupo-cosas' }, el('h3', { textContent: `${t} · ${lista.length}` }), el('ul', { className: 'lista-cosas' }, ...lista.map(c => {
+      const punto = el('span', { className: 'punto' + (c.encendida ? ' on' : '') });
+      if (c.tipo === 'escena') punto.style.visibility = 'hidden';
+      return el('li', {}, punto, el('span', { className: 'n', title: c.nombre }, c.nombre, el('small', { textContent: c.clase })),
+        el('span', { className: 'mandos' }, ...mandos(c, punto)));
+    })));
+  }).filter(Boolean);
+  caja.replaceChildren(...(grupos.length ? grupos : [el('p', { className: 'vacio', textContent: 'Nada coincide con esa búsqueda.' })]));
+}
+
+async function cargar(forzar) {
+  const r = await api(`/api/casa/cosas${forzar ? '?forzar=1' : ''}`);
+  cosas = r.cosas || []; info = { ha: r.ha, hue: r.hue };
+  pintarEstado(); pintarCosas();
+}
+
+function hallados(caja, lista, alElegir) {
+  caja.replaceChildren(...lista.map(x => { const b = el('button', { type: 'button', className: 'ficha', textContent: x }); b.addEventListener('click', () => alElegir(x)); return b; }));
+}
+$('#ha-buscar').addEventListener('click', e => ocupado(e.target, 'Buscando…', async () => {
+  $('#aviso-ha').textContent = '';
+  const r = await api('/api/casa/ha/buscar', {});
+  if (!r.direcciones.length) { $('#aviso-ha').textContent = 'No lo encontré en tu red. Escribe la dirección a mano.'; return; }
+  $('#ha-url').value = r.direcciones[0];
+  hallados($('#ha-hallados'), r.direcciones.length > 1 ? r.direcciones : [], x => { $('#ha-url').value = x; });
+}));
+$('#ha-conectar').addEventListener('click', e => ocupado(e.target, 'Conectando…', async () => {
+  $('#aviso-ha').textContent = '';
+  try {
+    info = await api('/api/casa/ha', { url: $('#ha-url').value, token: $('#ha-token').value });
+    $('#ha-token').value = '';
+    await cargar(true);
+  } catch (err) { $('#aviso-ha').textContent = err.message; }
+}));
+$('#ha-olvidar').addEventListener('click', async () => { await api('/api/casa/olvidar', { lado: 'ha' }); await cargar(true); });
+$('#hue-buscar').addEventListener('click', e => ocupado(e.target, 'Buscando…', async () => {
+  $('#aviso-hue').textContent = '';
+  const r = await api('/api/casa/hue/buscar', {});
+  if (!r.puentes.length) { $('#aviso-hue').textContent = 'No encontré un puente en tu red. Escribe su IP; la ves en la app Hue, en Ajustes → Puentes.'; return; }
+  $('#hue-ip').value = r.puentes[0];
+  hallados($('#hue-hallados'), r.puentes.length > 1 ? r.puentes : [], x => { $('#hue-ip').value = x; });
+}));
+$('#hue-emparejar').addEventListener('click', e => ocupado(e.target, 'Emparejando…', async () => {
+  $('#aviso-hue').textContent = '';
+  try { info = await api('/api/casa/hue/emparejar', { ip: $('#hue-ip').value }); await cargar(true); }
+  catch (err) { $('#aviso-hue').textContent = err.message; }
+}));
+$('#hue-olvidar').addEventListener('click', async () => { await api('/api/casa/olvidar', { lado: 'hue' }); await cargar(true); });
+$('#recargar').addEventListener('click', e => ocupado(e.target, 'Leyendo…', () => cargar(true)));
+$('#filtro').addEventListener('input', pintarCosas);
+
+// Si falta conectar algo, lo busca en la red al abrir la página y deja la dirección lista
+async function buscarAlAbrir() {
+  if (!info) return;
+  if (!info.ha.conectado && !$('#ha-url').value) api('/api/casa/ha/buscar', {}).then(r => { if (r.direcciones[0] && !$('#ha-url').value) $('#ha-url').value = r.direcciones[0]; }).catch(() => {});
+  if (!info.hue.emparejado && !$('#hue-ip').value) api('/api/casa/hue/buscar', {}).then(r => { if (r.puentes[0] && !$('#hue-ip').value) $('#hue-ip').value = r.puentes[0]; }).catch(() => {});
+}
+cargar(false).then(buscarAlAbrir).catch(() => {
+  $('#cosas').replaceChildren(el('p', { className: 'aviso', textContent: 'No hay conexión con el servidor. Arráncalo con «starlight serve» y recarga.' }));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Entorno y archivos generados
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Registros de sesiones de prueba (pueden traer datos del equipo)
+prototipos/lab/sesion.jsonl
+prototipos/lab/para-claude.log
+prototipos/logs/
+*.log

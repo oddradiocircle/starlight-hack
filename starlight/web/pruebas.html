@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starlight · Pruebas</title>
+<style>
+@font-face { font-family: "Inter"; src: url("fuentes/InterVariable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+:root {
+  --fondo: #e7e4dd; --placa: #f4f2ed; --placa-2: #e9e6df; --linea: #cbc6bb; --tinta: #1d1d1b; --tinta-2: #4f4c46;
+  --callado: #66615a; --acento: #ee5a12; --ok: #3f8f4f; --mal: #b8442f; --mono: ui-monospace, "SF Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --fondo: #121211; --placa: #1e1e1c; --placa-2: #282825; --linea: #3b3934; --tinta: #eeebe4; --tinta-2: #bdb8ae;
+    --callado: #8c877d; --acento: #ff6a1f; --ok: #6cbf7b; --mal: #e2725c; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--fondo); color: var(--tinta); }
+body { font: 14px/1.45 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.marco { max-width: 720px; margin: 0 auto; padding: 0 24px 64px; }
+header { display: flex; align-items: center; gap: 16px; padding: 24px 0 28px; }
+.marca { font-size: 18px; font-weight: 650; }
+.marca span { color: var(--callado); font-weight: 450; }
+header a { margin-left: auto; color: var(--tinta-2); font-size: 13px; }
+header button { border: 1px solid var(--linea); background: var(--placa); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.prueba { background: var(--placa); border: 1px solid var(--linea); border-radius: 16px; padding: 24px; }
+.prueba h1 { margin: 0 0 8px; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
+.prueba .mirar { margin: 0 0 20px; color: var(--tinta-2); font-size: 15px; }
+.ejecutar { border: 0; background: var(--tinta); color: var(--placa); border-radius: 10px; padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; min-height: 44px; }
+.ejecutar[disabled] { opacity: .55; cursor: default; }
+.ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--linea); }
+.ops[hidden] { display: none; }
+.ops p { width: 100%; margin: 0 0 4px; color: var(--callado); font-size: 13px; }
+.ops button { border: 1px solid var(--linea); background: var(--placa-2); border-radius: 10px; padding: 10px 14px; cursor: pointer; min-height: 44px; }
+.ops button:hover { border-color: var(--tinta-2); }
+.ops input { flex: 1 1 100%; margin-top: 4px; border: 1px solid var(--linea); background: var(--fondo); border-radius: 10px; padding: 10px 12px; }
+.aviso { margin: 12px 0 0; font-size: 13px; color: var(--mal); }
+.aviso:empty { display: none; }
+.vacio { color: var(--tinta-2); }
+.vacio strong { display: block; color: var(--tinta); font-size: 16px; margin-bottom: 4px; }
+h2 { margin: 36px 0 10px; font-size: 13px; font-weight: 650; }
+.historial { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea); }
+.historial li { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding: 10px 0; border-bottom: 1px solid var(--linea); }
+.historial .t { font-weight: 550; }
+.historial .r { grid-column: 1; color: var(--tinta-2); }
+.historial time { grid-row: 1; grid-column: 2; color: var(--callado); font-size: 12px; font-family: var(--mono); }
+.historial:empty::before { content: "Todavía no has respondido ninguna prueba."; display: block; padding: 10px 0; color: var(--callado); }
+@media (max-width: 600px) { .marco { padding: 0 16px 48px; } .prueba { padding: 18px; } .ops button { flex: 1 1 100%; } }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="marca">starlight <span>· pruebas</span></div>
+    <a href="./">Volver al tablero</a>
+    <button id="sonido" title="El navegador solo deja sonar después de un clic">Activar sonido</button>
+  </header>
+
+  <section class="prueba" id="caja" aria-live="polite">
+    <div class="vacio" id="vacio"><strong>No hay pruebas pendientes</strong>Cuando Claude necesite que mires algo en el aparato, la prueba aparece aquí con un sonido.</div>
+    <div id="detalle" hidden>
+      <h1 id="titulo"></h1>
+      <p class="mirar" id="mirar"></p>
+      <button class="ejecutar" id="ejecutar">Ejecutar prueba</button>
+      <div class="ops" id="ops" hidden><p>¿Qué viste?</p></div>
+      <p class="aviso" id="aviso" role="alert"></p>
+    </div>
+  </section>
+
+  <h2>Respuestas anteriores</h2>
+  <ol class="historial" id="historial"></ol>
+</div>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const TOKEN = new URLSearchParams(location.search).get('token');
+const conToken = p => TOKEN ? `${p}${p.includes('?') ? '&' : '?'}token=${encodeURIComponent(TOKEN)}` : p;
+let actual = null, corrida = false;
+
+async function orden(ruta, cuerpo) {
+  try {
+    const r = await fetch(conToken(ruta), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'No se pudo hacer.');
+    $('#aviso').textContent = '';
+    return j;
+  } catch (e) {
+    $('#aviso').textContent = e.message === 'Failed to fetch' ? 'No hay conexión con el servidor. Revisa que esté corriendo.' : e.message;
+  }
+}
+
+function pintarPrueba(p) {
+  actual = p;
+  $('#vacio').hidden = !!p;
+  $('#detalle').hidden = !p;
+  document.title = p ? '● Prueba pendiente · Starlight' : 'Starlight · Pruebas';
+  if (!p) return;
+  corrida = false;
+  $('#titulo').textContent = p.titulo;
+  $('#mirar').textContent = p.mirar || '';
+  $('#ejecutar').textContent = 'Ejecutar prueba';
+  const ops = $('#ops');
+  ops.hidden = true;
+  ops.querySelectorAll('button, input').forEach(e => e.remove());
+  p.opciones.forEach(o => {
+    const b = document.createElement('button');
+    b.textContent = o;
+    b.addEventListener('click', () => orden('/api/prueba/responder', { id: p.id, respuesta: o, nota: $('#nota').value }));
+    ops.appendChild(b);
+  });
+  const nota = document.createElement('input');
+  nota.id = 'nota'; nota.placeholder = 'Detalle opcional: qué viste exactamente';
+  ops.appendChild(nota);
+}
+function pintarEstado(corriendo, error) {
+  const b = $('#ejecutar');
+  b.disabled = corriendo;
+  b.textContent = corriendo ? 'Corriendo… mira el aparato' : (corrida ? 'Repetir prueba' : 'Ejecutar prueba');
+  if (!corriendo && corrida) $('#ops').hidden = false;
+  if (error) $('#aviso').textContent = error;
+}
+function pintarHistorial(h) {
+  $('#historial').replaceChildren(...h.map(x => {
+    const li = document.createElement('li');
+    const t = document.createElement('span'); t.className = 't'; t.textContent = x.titulo;
+    const r = document.createElement('span'); r.className = 'r'; r.textContent = x.respuesta + (x.nota ? ` · ${x.nota}` : '');
+    const f = document.createElement('time'); f.textContent = x.fecha.slice(5, 16);
+    li.append(t, f, r);
+    return li;
+  }));
+}
+let historial = [];
+$('#ejecutar').addEventListener('click', () => { corrida = true; orden('/api/prueba/ejecutar', {}); });
+
+// sonido de aviso (el navegador lo permite solo después de un clic)
+let audio = null;
+function asegurarAudio() { try { audio = audio || new AudioContext(); if (audio.state === 'suspended') audio.resume(); } catch (e) { audio = null; } }
+document.addEventListener('pointerdown', asegurarAudio, { capture: true });
+function sonar() {
+  if (!audio || audio.state !== 'running') return;
+  const t0 = audio.currentTime;
+  [[880, 0], [1320, .16]].forEach(([f, dt]) => {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.frequency.value = f;
+    g.gain.setValueAtTime(.0001, t0 + dt); g.gain.exponentialRampToValueAtTime(.3, t0 + dt + .02); g.gain.exponentialRampToValueAtTime(.0001, t0 + dt + .35);
+    o.connect(g).connect(audio.destination); o.start(t0 + dt); o.stop(t0 + dt + .4);
+  });
+}
+$('#sonido').addEventListener('click', () => { asegurarAudio(); setTimeout(sonar, 50); $('#sonido').textContent = 'Sonido activo'; });
+
+const es = new EventSource(conToken('/api/eventos'));
+es.onmessage = m => {
+  const ev = JSON.parse(m.data);
+  if (ev.tipo === 'estado' && ev.pruebas) {
+    pintarPrueba(ev.pruebas.actual); historial = ev.pruebas.historial; pintarHistorial(historial);
+    if (ev.pruebas.corriendo) { corrida = true; pintarEstado(true); }
+  } else if (ev.tipo === 'prueba') { pintarPrueba(ev.prueba); sonar(); }
+  else if (ev.tipo === 'prueba-estado' && actual && ev.id === actual.id) pintarEstado(ev.corriendo, ev.error);
+  else if (ev.tipo === 'prueba-respuesta') {
+    historial = [ev, ...historial].slice(0, 20); pintarHistorial(historial); pintarPrueba(null);
+  }
+};
+es.onerror = () => { $('#aviso').textContent = 'Sin conexión con el servidor. La página se reconecta sola.'; };
+es.onopen = () => { $('#aviso').textContent = ''; };
+</script>
+</body>
+</html>

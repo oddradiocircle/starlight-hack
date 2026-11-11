@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "starlight-hack"
+version = "0.1.0"
+description = "Usa la Hercules DJControl Starlight para controlar tu computador, tus luces y Claude Code"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Daniel Gómez (oddradiocircle)" }]
+keywords = ["hercules", "djcontrol", "starlight", "midi", "sysex", "claude-code", "home-assistant", "philips-hue"]
+# Windows usa la API MIDI nativa; macOS y Linux necesitan python-rtmidi.
+dependencies = [
+  'python-rtmidi>=1.5; sys_platform != "win32"',
+  'pycaw>=20240210; sys_platform == "win32"',   # volumen y medidor de audio en Windows
+]
+
+[project.urls]
+Repositorio = "https://github.com/oddradiocircle/starlight-hack"
+
+[project.optional-dependencies]
+rtmidi = ["python-rtmidi>=1.5"]
+
+[project.scripts]
+starlight = "starlight.cli:main"
+
+[tool.setuptools]
+packages = ["starlight", "starlight.midi", "starlight.perfiles_incluidos"]
+
+[tool.setuptools.package-data]
+starlight = ["web/*.html", "web/*.css", "web/*.js", "web/fuentes/*", "web/*.md"]
+"starlight.perfiles_incluidos" = ["*.py", "*.json"]

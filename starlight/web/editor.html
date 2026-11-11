@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starlight · Perfiles</title>
+<link rel="stylesheet" href="comun.css">
+<style>
+.marco { max-width: 1240px; margin: 0 auto; padding: 0 24px 72px; }
+header { display: flex; align-items: center; gap: 20px; padding: 24px 0 22px; }
+.marca { font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
+.marca span { color: var(--callado); font-weight: 450; }
+header nav { margin-left: auto; display: flex; gap: 18px; }
+header a { color: var(--tinta-2); font-size: 13px; }
+.disposicion { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; }
+
+/* lista de perfiles */
+.lista { display: grid; gap: 4px; position: sticky; top: 16px; }
+.lista .botones { display: flex; gap: 8px; margin-bottom: 10px; }
+.item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.item:hover { background: var(--placa-2); }
+.item[aria-current="true"] { background: var(--placa); border-color: var(--linea); }
+.item .n { flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; }
+.item .t { display: block; font-size: 11.5px; color: var(--callado); margin-top: 2px; }
+.item .activo { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+
+/* el perfil */
+.tarjeta { background: var(--placa); border: 1px solid var(--linea); border-radius: 18px; padding: 24px 28px 28px; box-shadow: var(--sombra); min-width: 0; }
+.cabeza { display: flex; gap: 16px; align-items: flex-start; }
+.cabeza .textos { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.nombre { font-size: 22px; font-weight: 650; letter-spacing: -.015em; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 2px 8px; margin-left: -9px; width: 100%; }
+.desc { font: inherit; font-size: 14px; line-height: 1.45; color: var(--tinta-2); border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 2px 8px; margin-left: -9px; width: 100%; resize: none; overflow: hidden; display: block; }
+.nombre:hover, .desc:hover { border-color: var(--linea); }
+.nombre:focus, .desc:focus { border-color: var(--tinta-2); background: var(--fondo); outline: none; }
+h1.nombre-fijo { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -.015em; }
+.desc-fija { margin: 0; color: var(--tinta-2); }
+.ruta { font-family: var(--mono); font-size: 12px; color: var(--callado); word-break: break-all; margin: 6px 0 0; }
+.activo-txt { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tinta-2); padding: 6px 0; white-space: nowrap; }
+.activo-txt::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.aviso-importado { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--placa-2); font-size: 13px; color: var(--tinta-2); }
+
+section { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--linea); }
+section h2 { margin: 0 0 14px; font-size: 13px; font-weight: 650; letter-spacing: .01em; }
+.fila { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 8px 14px; align-items: start; margin-bottom: 16px; }
+.fila > .etiqueta { color: var(--callado); font-size: 12px; padding-top: 7px; }
+.fila > .contenido { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; min-width: 0; }
+.fila .ayuda { font-size: 12px; color: var(--callado); }
+.fila .ayuda.sola { padding-top: 6px; }
+.escena-txt { font-size: 13px; color: var(--tinta-2); }
+
+/* controles: el dibujo y el panel */
+.cabeza-controles { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.cabeza-controles h2 { margin: 0; }
+.cabeza-controles .derecha { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.cabeza-controles .pista { font-size: 12px; color: var(--callado); }
+#dibujo { display: block; width: 100%; height: auto; }
+
+.zona-panel { margin-top: 14px; padding: 16px; border-radius: 14px; background: var(--fondo); min-height: 72px; }
+.zona-panel .accion { background: var(--placa); }
+.zona-panel .accion .seg { background: var(--placa-2); }
+.zona-panel .vacio { margin: 8px 0; font-size: 13px; color: var(--callado); }
+
+/* todo el perfil */
+.resumen { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.resumen li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: baseline; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
+.resumen li:hover { background: var(--placa-2); }
+.resumen li[aria-current="true"] { background: var(--placa-2); }
+.resumen .c { font-size: 13px; font-weight: 550; }
+.resumen .q { font-size: 13px; color: var(--tinta-2); min-width: 0; }
+.resumen .q small { color: var(--callado); font-size: 12px; margin-left: 6px; }
+.resumen .del { font-size: 11.5px; color: var(--tinta); font-weight: 650; margin-right: 6px; }
+.resumen .q.tapado { color: var(--callado); }
+.resumen .q.tapado > :first-child { text-decoration: line-through; }
+.resumen-vacio { margin: 0; font-size: 13px; color: var(--callado); }
+
+/* Claude Code */
+.estados { display: grid; gap: 12px; }
+.estados { gap: 18px; }
+.estado-fila { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 10px 14px; align-items: start; }
+.estado-fila .n { font-size: 13px; padding-top: 5px; }
+.estado-fila .titilan { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.estado-fila .titilan > span { font-size: 12px; color: var(--callado); }
+
+/* la Starlight en pequeño: aparece al bajar y simula cómo se ve el perfil */
+.mini { position: fixed; right: 20px; bottom: 20px; z-index: 20; width: 480px; padding: 12px 12px 10px; border-radius: 16px;
+  background: var(--placa); border: 1px solid var(--linea); box-shadow: 0 18px 44px -18px rgba(30,20,5,.45);
+  transition: opacity .2s, transform .2s cubic-bezier(.25,.8,.25,1); }
+.mini.oculta { opacity: 0; transform: translateY(12px); pointer-events: none; }
+.mini .cabeza-mini { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.mini .cabeza-mini strong { font-size: 12.5px; font-weight: 650; white-space: nowrap; }
+.mini .cabeza-mini .seg { flex-wrap: nowrap; }
+.mini .cabeza-mini .seg { margin-left: auto; }
+.mini .seg button { padding: 3px 8px; font-size: 12px; }
+.mini svg { display: block; width: 100%; height: auto; pointer-events: none; }
+.mini svg .etq, .mini svg .num, .mini svg .letra { display: none; }
+@media (prefers-color-scheme: dark) { .mini { box-shadow: none; } }
+@media (min-width: 901px) { .marco { padding-bottom: 300px; } }
+@media (max-width: 900px) { .mini { display: none; } }
+
+.pie { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--linea); }
+.pie .estado-guardar { font-size: 12.5px; color: var(--callado); }
+.pie .derecha { margin-left: auto; }
+.aviso { margin: 12px 0 0; font-size: 13px; color: var(--mal); }
+.aviso:empty { display: none; }
+.cargando { color: var(--callado); }
+
+@media (max-width: 900px) {
+  .disposicion { grid-template-columns: 1fr; }
+  .lista { position: static; }
+}
+@media (max-width: 760px) {
+  .marco { padding: 0 16px 48px; }
+  .tarjeta { padding: 18px 16px; border-radius: 14px; }
+  #dibujo .etq, #dibujo .rotulo, #dibujo .num, #dibujo .letra { display: none; }
+  #dibujo { pointer-events: none; }
+  .cabeza-controles .pista { display: none; }
+  .fila > .etiqueta { width: 100%; }
+  .estado-fila { grid-template-columns: 1fr; }
+  .estado-fila .titilan { grid-column: 1; }
+  .resumen li { grid-template-columns: 1fr; gap: 2px; }
+  .pie .derecha { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="marca">starlight <span>· perfiles</span></div>
+    <nav><a href="./">Tablero</a><a href="casa">Casa</a><a href="pruebas">Pruebas</a></nav>
+  </header>
+  <div class="disposicion">
+    <aside class="lista" aria-label="Perfiles">
+      <div class="botones">
+        <button type="button" class="boton-txt" id="nuevo">Nuevo</button>
+        <button type="button" class="boton-txt" id="importar">Importar…</button>
+        <input type="file" id="archivo" accept=".json,application/json" hidden>
+      </div>
+      <div id="lista"></div>
+    </aside>
+    <main id="editor" class="tarjeta" aria-live="polite"><p class="cargando">Cargando perfiles…</p></main>
+  </div>
+</div>
+<script src="dibujo.js"></script>
+<script src="asignar.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const { el, seg, muestras } = Asignar;
+const TOKEN = new URLSearchParams(location.search).get('token');
+const conToken = p => TOKEN ? `${p}${p.includes('?') ? '&' : '?'}token=${encodeURIComponent(TOKEN)}` : p;
+const ESTADOS = { trabajando: 'Trabajando', esperando: 'Te necesita', listo: 'Terminó', inactivo: 'Inactiva', error: 'Error' };
+const POR_DEFECTO = { trabajando: { color: 'celeste', efecto: 'respira' }, esperando: { color: 'naranja', efecto: 'parpadeo' },
+  listo: { color: 'verde', efecto: 'fijo' }, inactivo: { color: 'indigo', efecto: 'fijo' }, error: { color: 'rojo', efecto: 'parpadeo' } };
+
+let cat = null, perfiles = { activo: null, perfiles: [] };
+let actual = null;      // clave del perfil abierto (null: uno nuevo sin guardar)
+let info = null;        // lo que dice el servidor del perfil
+let def = null;         // definición que se edita (perfil JSON)
+let capa = [];          // tus cambios encima de un perfil en Python
+let elegido = null;     // control abierto en el panel
+let sucio = false, eligiendo = false, importado = null, casa = [];
+let dib = null, panel = null;
+
+async function api(ruta, cuerpo) {
+  const r = await fetch(conToken(ruta), cuerpo === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'No se pudo hacer.');
+  return j;
+}
+const aviso = t => { const a = $('#aviso'); if (a) a.textContent = t || ''; };
+const esPython = () => info && info.tipo === 'python';
+const asignaciones = () => esPython() ? capa : def.asignaciones;
+function cambiado() {
+  sucio = true;
+  const e = $('#estado-guardar'); if (e) e.textContent = 'Cambios sin guardar';
+  pintarDibujo(); pintarResumen();
+}
+window.addEventListener('beforeunload', e => { if (sucio) { e.preventDefault(); e.returnValue = ''; } });
+
+// ------------------------------------------------------------------ lista
+function pintarLista() {
+  $('#lista').replaceChildren(...perfiles.perfiles.map(p => {
+    const b = el('button', { type: 'button', className: 'item' });
+    b.setAttribute('aria-current', String(p.clave === actual));
+    const tipo = p.tipo === 'python' ? (p.cambios ? `Python · ${p.cambios} ${p.cambios === 1 ? 'cambio tuyo' : 'cambios tuyos'}` : 'Python')
+      : (p.origen === 'tuyo' ? 'Tuyo' : 'Incluido');
+    b.append(el('span', { className: 'n' }, p.nombre, el('span', { className: 't', textContent: tipo })));
+    if (p.clave === perfiles.activo) { const d = el('span', { className: 'activo' }); d.title = 'Activo'; b.append(d); }
+    b.addEventListener('click', () => abrir(p.clave));
+    return b;
+  }));
+}
+
+async function abrir(clave, desdeArchivo) {
+  if (sucio && !confirm('Tienes cambios sin guardar. ¿Descartarlos?')) return;
+  actual = clave; elegido = null; sucio = false; eligiendo = false; importado = null;
+  if (desdeArchivo) {
+    info = { origen: 'tuyo', tipo: 'json', manejadores: [] };
+    def = desdeArchivo.def; importado = desdeArchivo.nombre;
+  } else if (clave === null) {
+    info = { origen: 'tuyo', tipo: 'json', manejadores: [] };
+    def = { nombre: 'Perfil nuevo', descripcion: '', color: { color: 'verde', efecto: 'fijo' }, estados: {}, leer_perillas: true, asignaciones: [] };
+  } else {
+    info = await api(`/api/perfil/definicion?clave=${encodeURIComponent(clave)}`);
+    def = info.definicion ? JSON.parse(JSON.stringify(info.definicion)) : null;
+    capa = JSON.parse(JSON.stringify(info.capa || []));
+  }
+  const url = new URL(location); if (clave) url.searchParams.set('perfil', clave); else url.searchParams.delete('perfil');
+  history.replaceState(null, '', url);
+  pintarLista(); pintarEditor();
+}
+
+// ------------------------------------------------------------------ editor
+function seccion(titulo, ...hijos) { return el('section', {}, titulo ? el('h2', { textContent: titulo }) : null, ...hijos); }
+function fila(etiqueta, ...hijos) {
+  return el('div', { className: 'fila' }, el('span', { className: 'etiqueta', textContent: etiqueta }), el('div', { className: 'contenido' }, ...hijos));
+}
+
+function textoEscena(e) {
+  const partes = [];
+  if (e.base) {
+    if (e.base.modo === 'auto') partes.push('base en show normal');
+    else {
+      const l = e.base.izq || e.base.der;
+      if (l) partes.push(`base ${l.efecto === 'fijo' ? 'fija' : l.efecto === 'parpadeo' ? 'que parpadea' : 'que respira'}`);
+    }
+  }
+  if (typeof e.brillo === 'number') partes.push(`brillo ${Math.round(e.brillo * 100)} %`);
+  const n = Object.keys(e.luces || {}).length;
+  partes.push(n ? `${n} ${n === 1 ? 'luz' : 'luces'}` : 'luces apagadas');
+  if (e.modos && Object.keys(e.modos).length) partes.push('modos de los pads');
+  return partes.join(', ');
+}
+
+function pintarEditor() {
+  const ed = $('#editor');
+  const activo = perfiles.activo === actual && actual;
+  const activar = el('button', { type: 'button', className: 'boton-txt', textContent: 'Activar' });
+  activar.addEventListener('click', async () => { try { await api('/api/perfil', { nombre: actual }); } catch (e) { aviso(e.message); } });
+  const estadoActivo = !actual ? null : activo ? el('span', { className: 'activo-txt', textContent: 'Activo' }) : activar;
+  const partes = [];
+
+  // cabeza
+  if (esPython()) {
+    partes.push(el('div', { className: 'cabeza' }, el('div', { className: 'textos' },
+      el('h1', { className: 'nombre-fijo', textContent: info.nombre }), el('p', { className: 'desc-fija', textContent: info.descripcion }),
+      el('p', { className: 'ruta', textContent: `Escrito en Python: ${info.ruta}` })), estadoActivo));
+  } else {
+    const nombre = el('input', { type: 'text', className: 'nombre', value: def.nombre });
+    nombre.setAttribute('aria-label', 'Nombre del perfil');
+    nombre.addEventListener('input', () => { def.nombre = nombre.value; cambiado(); });
+    const desc = el('textarea', { className: 'desc', value: def.descripcion || '', placeholder: 'Qué hace este perfil', rows: 1 });
+    desc.setAttribute('aria-label', 'Descripción');
+    const crecer = () => { desc.style.height = 'auto'; desc.style.height = desc.scrollHeight + 'px'; };
+    desc.addEventListener('input', () => { def.descripcion = desc.value.replace(/\s*\n\s*/g, ' '); crecer(); cambiado(); });
+    requestAnimationFrame(crecer);
+    partes.push(el('div', { className: 'cabeza' }, el('div', { className: 'textos' }, nombre, desc), estadoActivo));
+    if (importado) partes.push(el('p', { className: 'aviso-importado', textContent: `Importado de ${importado}. Revisa lo que hace cada control antes de guardarlo.` }));
+    else if (info.origen === 'incluido') partes.push(el('p', { className: 'aviso-importado', textContent: 'Es un perfil incluido: al guardar se crea tu copia y el original queda intacto.' }));
+  }
+
+  // al activar
+  const alActivar = [];
+  if (!esPython()) {
+    // «Sin cambiar la base» deja def.color en null; elegir un color lo crea con su efecto, intensidad y velocidad
+    const v = def.color ? def.color : { color: null, efecto: 'fijo' };
+    const control = Asignar.colorBase(v, () => { def.color = v.color || v.rgb ? v : null; cambiado(); },
+      { ninguna: 'Sin cambiar la base', alColor: c => { if (!c) { delete v.brillo; delete v.ciclo; } setTimeout(() => control.repintar()); } });
+    alActivar.push(fila('Base', control));
+  }
+  const escena = info.escena && Object.keys(info.escena).length ? info.escena : (def && def.escena) || null;
+  if (escena && Object.keys(escena).length) {
+    const quitar = el('button', { type: 'button', className: 'enlace-boton', textContent: 'Quitar escena' });
+    quitar.addEventListener('click', async () => {
+      try {
+        if (!esPython() && def) delete def.escena;
+        if (actual) await api('/api/perfil/escena', { clave: actual, borrar: true });
+        info.escena = {}; pintarEditor();
+      } catch (e) { aviso(e.message); }
+    });
+    alActivar.push(fila('Escena', el('span', { className: 'escena-txt', textContent: `Vuelve a como la grabaste: ${textoEscena(escena)}.` }), quitar));
+  } else {
+    alActivar.push(fila('Escena', el('span', { className: 'ayuda sola', textContent: 'Sin escena. Deja el aparato como lo quieres y, en el tablero, usa «Grabar en el perfil».' })));
+  }
+  if (!esPython()) {
+    alActivar.push(fila('Perillas', seg([[true, 'Leerlas'], [false, 'No leerlas']], def.leer_perillas !== false, v => { def.leer_perillas = v; cambiado(); }, 'Leer perillas al activar', true),
+      el('span', { className: 'ayuda', textContent: 'Leerlas ajusta el perfil a cómo están. No las leas si una perilla cambia algo afuera, como el volumen de Windows.' })));
+  }
+  partes.push(seccion('Al activar', ...alActivar));
+
+  // controles
+  const elegir = el('button', { type: 'button', className: 'boton-txt' + (eligiendo ? ' primario' : ''), textContent: eligiendo ? 'Toca un control en la Starlight…' : 'Elegir tocando la Starlight' });
+  elegir.addEventListener('click', () => { eligiendo = !eligiendo; pintarEditor(); });
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'dibujo'; svg.setAttribute('viewBox', '0 0 1200 372'); svg.setAttribute('role', 'group'); svg.setAttribute('aria-label', 'Controles de la Starlight');
+  const zona = el('div', { className: 'zona-panel', id: 'zona-panel' });
+  partes.push(el('section', {}, el('div', { className: 'cabeza-controles' }, el('h2', { textContent: 'Controles' }),
+    el('span', { className: 'derecha' }, el('span', { className: 'pista', textContent: 'Toca un control en el dibujo' }), elegir)), svg, zona));
+
+  // todo el perfil
+  partes.push(seccion(esPython() ? 'Lo que hace' : 'Todo el perfil', el('ul', { className: 'resumen', id: 'resumen' })));
+
+  // Claude Code
+  if (!esPython()) partes.push(seccionClaude());
+
+  // pie
+  const guardar = el('button', { type: 'button', className: 'boton-txt primario', textContent: esPython() ? 'Guardar mis cambios' : 'Guardar' });
+  guardar.addEventListener('click', () => guardarPerfil(false, guardar));
+  const pie = el('div', { className: 'pie' }, guardar);
+  if (!esPython()) {
+    const guardarActivar = el('button', { type: 'button', className: 'boton-txt', textContent: 'Guardar y activar' });
+    guardarActivar.addEventListener('click', () => guardarPerfil(true, guardarActivar));
+    const exportar = el('button', { type: 'button', className: 'boton-txt', textContent: 'Exportar' });
+    exportar.addEventListener('click', exportarPerfil);
+    pie.append(guardarActivar, exportar);
+  }
+  pie.append(el('span', { className: 'estado-guardar', id: 'estado-guardar', textContent: sucio ? 'Cambios sin guardar' : '' }));
+  if ((info.origen === 'tuyo' && actual && !esPython()) || (esPython() && (info.capa || []).length)) {
+    const borrar = el('button', { type: 'button', className: 'boton-txt peligro derecha', textContent: esPython() ? 'Quitar mis cambios' : 'Borrar perfil' });
+    let hasta = 0;
+    borrar.addEventListener('click', async () => {
+      if (performance.now() > hasta) {
+        hasta = performance.now() + 4000; borrar.classList.add('confirmar'); borrar.textContent = 'Clic otra vez para confirmar';
+        setTimeout(() => { if (performance.now() > hasta) { borrar.classList.remove('confirmar'); borrar.textContent = esPython() ? 'Quitar mis cambios' : 'Borrar perfil'; } }, 4100);
+        return;
+      }
+      try {
+        if (esPython()) { await api('/api/perfil/capa', { clave: actual, asignaciones: [] }); sucio = false; await abrir(actual); }
+        else { await api('/api/perfil/borrar', { clave: actual }); sucio = false; await abrir(perfiles.activo && perfiles.activo !== actual ? perfiles.activo : null); }
+      } catch (e) { aviso(e.message); }
+    });
+    pie.append(borrar);
+  }
+  partes.push(pie, el('p', { className: 'aviso', id: 'aviso' }));
+  ed.replaceChildren(...partes);
+
+  dib = StarlightDibujo.dibujar(svg, { tocar: elegirControl });
+  dib.tocables(new Set(dib.ids), n => `Qué hace ${n}`);
+  crearMini(svg);
+  pintarDibujo(); pintarPanel(); pintarResumen();
+}
+
+function seccionClaude() {
+  const tiene = Object.keys(def.estados || {}).length > 0;
+  const tabla = el('div', { className: 'estados' });
+  const pintarTabla = () => {
+    tabla.replaceChildren();
+    if (!Object.keys(def.estados || {}).length) return;
+    const conLuz = new Set(cat.con_luz);
+    const candidatos = [...new Set(def.asignaciones.map(a => a.control).filter(c => conLuz.has(c) || c.includes('.pad')))].sort();
+    for (const [k, t] of Object.entries(ESTADOS)) {
+      const v = def.estados[k] || (def.estados[k] = { ...POR_DEFECTO[k] });
+      const filaE = el('div', { className: 'estado-fila' }, el('span', { className: 'n', textContent: t }), Asignar.colorBase(v, cambiado));
+      const simular = () => { vista = k; pintarMini(); }, volver = () => { vista = vistaFija; pintarMini(); };
+      filaE.addEventListener('mouseenter', simular); filaE.addEventListener('mouseleave', volver);
+      filaE.addEventListener('focusin', simular); filaE.addEventListener('focusout', volver);
+      if (k === 'esperando' && candidatos.length) {
+        const fichas = el('div', { className: 'fichas' });
+        for (const c of candidatos) {
+          const f = el('button', { type: 'button', className: 'ficha', textContent: StarlightDibujo.nombreControl(c) });
+          f.setAttribute('aria-pressed', String((v.titilar || []).includes(c)));
+          f.addEventListener('click', () => {
+            const s = new Set(v.titilar || []); s.has(c) ? s.delete(c) : s.add(c);
+            v.titilar = [...s]; f.setAttribute('aria-pressed', String(s.has(c))); cambiado();
+          });
+          fichas.append(f);
+        }
+        filaE.append(el('div', { className: 'titilan' }, el('span', { textContent: 'Titilan' }), fichas));
+      }
+      tabla.append(filaE);
+    }
+  };
+  const interruptor = seg([[true, 'Mostrarlo'], [false, 'No']], tiene, v => {
+    def.estados = v ? Object.fromEntries(Object.entries(POR_DEFECTO).map(([k, x]) => [k, { ...x, ...(k === 'esperando' ? { titilar: [] } : {}) }])) : {};
+    cambiado(); pintarTabla();
+  }, 'Mostrar el estado de Claude Code', true);
+  pintarTabla();
+  const enPads = seg([[null, 'No'], ['hotcue', 'Hot Cue'], ['loop', 'Loop'], ['fx', 'FX'], ['sampler', 'Sampler']],
+    def.sesiones_en === undefined ? null : def.sesiones_en, v => { def.sesiones_en = v; cambiado(); }, 'Modo de pads de las sesiones', true);
+  return seccion('Claude Code', fila('En la base', interruptor,
+    el('span', { className: 'ayuda', textContent: 'Con varias sesiones abiertas, la base muestra la más urgente.' })),
+    fila('En los pads', enPads, el('span', { className: 'ayuda', textContent: 'En ese modo, los 8 pads son tus sesiones: encendido, abierta; titila, te necesita.' })),
+    tabla);
+}
+
+// ------------------------------------------------------------------ dibujo, panel y resumen
+function elegirControl(id) {
+  elegido = id; eligiendo = false;
+  const b = document.querySelector('.cabeza-controles .derecha .boton-txt');
+  if (b) { b.classList.remove('primario'); b.textContent = 'Elegir tocando la Starlight'; }
+  pintarDibujo(); pintarPanel(); pintarResumen();
+}
+// Pinta la franja de la base como la vería el aparato: color, efecto, intensidad y velocidad
+function pintarFranja(d, v) {
+  const color = v && (v.rgb || (v.color && Asignar.PALETA[v.color]));
+  for (const f of Object.values(d.franja)) {
+    f.classList.remove('parpadeo', 'respira', 'viva');
+    f.style.removeProperty('animation-duration');
+    if (!color) { f.style.removeProperty('--c'); continue; }
+    let rgb = typeof color === 'string' ? color.match(/\w\w/g).map(x => parseInt(x, 16)) : color;
+    const brillo = typeof v.brillo === 'number' ? v.brillo : 1;
+    rgb = rgb.map(c => Math.round(c * (0.25 + 0.75 * brillo)));
+    f.style.setProperty('--c', `rgb(${rgb.join(',')})`);
+    f.classList.add('viva');
+    if (v.efecto && v.efecto !== 'fijo') {
+      f.classList.add(v.efecto);
+      // respira va y vuelve: la animación dura medio ciclo
+      const ciclo = typeof v.ciclo === 'number' ? v.ciclo : (v.efecto === 'parpadeo' ? 1.0 : 2.4);
+      f.style.animationDuration = `${v.efecto === 'respira' ? ciclo / 2 : ciclo}s`;
+    }
+  }
+}
+function pintarDibujo() {
+  if (!dib) return;
+  pintarFranja(dib, !esPython() && def.color);
+  dib.marcar('asignado', Asignar.asignados(asignaciones(), info.manejadores, dib.ids));
+  pintarMini();
+  dib.marcar('elegido', new Set(elegido ? [Asignar.pieza(elegido)] : []));
+}
+// ------------------------------------------------------------------ la Starlight en pequeño
+let mini = null, vista = 'activar', vistaFija = 'activar';
+function crearMini(svgGrande) {
+  if (mini) { mini.caja.remove(); mini.observador.disconnect(); mini = null; }
+  if (esPython()) return;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 1200 372'); svg.setAttribute('aria-hidden', 'true');
+  const opciones = [['activar', 'Al activar'], ...Object.entries(ESTADOS)];
+  const elegir = seg(opciones.filter(([k]) => k === 'activar' || Object.keys(def.estados || {}).length), vistaFija,
+    v => { vistaFija = vista = v; pintarMini(); }, 'Qué simular', true);
+  const caja = el('div', { className: 'mini oculta' }, el('div', { className: 'cabeza-mini' }, el('strong', { textContent: 'Así se ve' }), elegir), svg);
+  caja.setAttribute('role', 'region'); caja.setAttribute('aria-label', 'Simulación de la Starlight');
+  document.body.append(caja);
+  const d = StarlightDibujo.dibujar(svg, {});
+  // aparece cuando el dibujo grande sale de la pantalla
+  const observador = new IntersectionObserver(([e]) => caja.classList.toggle('oculta', e.isIntersecting), { threshold: 0.15 });
+  observador.observe(svgGrande);
+  mini = { caja, d, elegir, observador };
+  pintarMini();
+}
+function pintarMini() {
+  if (!mini || esPython()) return;
+  const estado = vista !== 'activar' ? (def.estados || {})[vista] : null;
+  pintarFranja(mini.d, estado || def.color);
+  // las luces que el perfil prende al activarse (los controles con luz que tienen una acción)
+  const conLuz = new Set(cat.con_luz);
+  const prendidas = new Set(def.asignaciones.map(a => a.control).filter(c => c && a_luz(c, conLuz)));
+  const titilan = new Set(estado && estado.titilar ? estado.titilar : []);
+  mini.d.marcar('encendida', new Set([...prendidas, ...titilan]));
+  mini.d.marcar('titila', titilan);
+}
+const a_luz = (c, conLuz) => conLuz.has(c) || c.includes('.pad');
+
+function pintarPanel() {
+  const zona = $('#zona-panel');
+  if (!zona) return;
+  if (!elegido) {
+    zona.replaceChildren(el('p', { className: 'vacio', textContent: 'Elige un control para ver lo que hace y cambiarlo. Los que tienen una acción llevan el borde oscuro.' }));
+    return;
+  }
+  panel = Asignar.panel(zona, { control: elegido, asignaciones: asignaciones(), manejadores: info.manejadores || [], tipo: info.tipo,
+    cat, perfiles: perfiles.perfiles, casa, clave: actual, alCambiar: cambiado, alElegir: elegirControl });
+}
+function pintarResumen() {
+  const ul = $('#resumen');
+  if (!ul) return;
+  const filas = [];
+  const orden = c => (dib ? dib.ids.indexOf(Asignar.pieza(c)) : 0);
+  const ponerFila = (control, cuerpo, nombre) => {
+    const li = el('li', {}, el('span', { className: 'c', textContent: nombre || StarlightDibujo.nombreControl(control) }), cuerpo);
+    li.setAttribute('aria-current', String(control === elegido));
+    li.addEventListener('click', () => elegirControl(control));
+    filas.push([orden(control), li]);
+  };
+  for (const m of info.manejadores || []) {
+    const ctrl = m.control.includes('*') ? m.control.replace('*', '1') : m.control;
+    const tapado = asignaciones().some(a => Asignar.coincide(m.control, a.control) && (a.shift == null || m.shift == null || a.shift === m.shift));
+    const li = ponerFila(ctrl, el('span', { className: 'q' + (tapado ? ' tapado' : '') }, el('span', { textContent: m.descripcion }),
+      tapado ? el('small', { textContent: 'lo reemplaza tu cambio' }) : null),
+      m.control.endsWith('.pad*') ? `Pads ${m.control[0]}` : null);
+  }
+  for (const a of asignaciones()) {
+    if (!a.control) continue;
+    const cuando = Asignar.textoCuando(a, cat);
+    ponerFila(a.control, el('span', { className: 'q' }, esPython() ? el('span', { className: 'del', textContent: 'Tuyo' }) : null,
+      Asignar.resumen(a, cat, perfiles.perfiles), cuando ? el('small', { textContent: cuando }) : null));
+  }
+  filas.sort((x, y) => x[0] - y[0]);
+  if (!filas.length) { ul.replaceChildren(el('li', { className: 'resumen-vacio', textContent: 'Todavía no hay nada asignado. Elige un control arriba para empezar.' })); return; }
+  ul.replaceChildren(...filas.map(f => f[1]));
+}
+
+// ------------------------------------------------------------------ guardar, exportar, importar
+async function guardarPerfil(activar, boton) {
+  aviso('');
+  try {
+    let clave = actual;
+    if (esPython()) {
+      await api('/api/perfil/capa', { clave: actual, asignaciones: Asignar.limpiar(capa) });
+    } else {
+      const r = await api('/api/perfil/guardar', { clave: actual, definicion: { ...def, asignaciones: Asignar.limpiar(def.asignaciones) } });
+      clave = r.clave;
+      if (activar) await api('/api/perfil', { nombre: clave });
+    }
+    sucio = false;
+    const texto = boton.textContent;
+    boton.classList.add('hecho'); boton.textContent = activar ? 'Guardado y activo' : 'Guardado';
+    setTimeout(() => { boton.classList.remove('hecho'); boton.textContent = texto; }, 1600);
+    if (clave !== actual || importado || esPython()) { const e = elegido; await abrir(clave); if (e) elegirControl(e); }
+    else { const e = $('#estado-guardar'); if (e) e.textContent = ''; }
+  } catch (e) { aviso(e.message); }
+}
+function exportarPerfil() {
+  const datos = { ...def, asignaciones: Asignar.limpiar(def.asignaciones) };
+  const nombre = (actual || def.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_')) + '.starlight.json';
+  const a = el('a', { href: URL.createObjectURL(new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' })), download: nombre });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$('#nuevo').addEventListener('click', () => abrir(null));
+$('#importar').addEventListener('click', () => $('#archivo').click());
+$('#archivo').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d || typeof d !== 'object' || !Array.isArray(d.asignaciones)) throw new Error('Ese archivo no es un perfil de Starlight.');
+    d.nombre = String(d.nombre || f.name.replace(/\..*$/, ''));
+    if (perfiles.perfiles.some(p => p.nombre.toLowerCase() === d.nombre.toLowerCase())) d.nombre += ' (importado)';
+    d.estados = d.estados || {}; d.descripcion = d.descripcion || '';
+    await abrir(null, { def: d, nombre: f.name });
+  } catch (err) { aviso(err instanceof SyntaxError ? 'Ese archivo no es un JSON válido.' : err.message); }
+});
+
+// ------------------------------------------------------------------ eventos: lista viva y elegir tocando
+function conectar() {
+  const es = new EventSource(conToken('/api/eventos'));
+  es.onmessage = m => {
+    const ev = JSON.parse(m.data);
+    if (ev.tipo === 'estado' && ev.perfiles) { perfiles = ev.perfiles; pintarLista(); }
+    else if (ev.tipo === 'perfiles') {
+      const antes = perfiles.activo; perfiles = ev; pintarLista();
+      if (antes !== perfiles.activo && info) { const h = document.querySelector('.cabeza'); if (h && !sucio) pintarEditor(); }
+    } else if (ev.tipo === 'control' && eligiendo) {
+      if (ev.control === 'shift' || ev.control.startsWith('crudo.')) return;
+      if ((ev.clase === 'boton' || ev.clase === 'pad') && !ev.valor) return;
+      elegirControl(ev.control);
+    }
+  };
+}
+
+(async () => {
+  try {
+    cat = await api('/api/acciones');
+    casa = (await api('/api/casa/cosas').catch(() => ({ cosas: [] }))).cosas || [];
+    perfiles = await api('/api/perfiles');
+    conectar();
+    const pedido = new URLSearchParams(location.search).get('perfil');
+    await abrir(pedido || perfiles.activo || (perfiles.perfiles[0] && perfiles.perfiles[0].clave) || null);
+    const control = new URLSearchParams(location.search).get('control');
+    if (control) elegirControl(control);
+  } catch (e) {
+    $('#editor').replaceChildren(el('p', { className: 'aviso', textContent: 'No hay conexión con el servidor. Arráncalo con «starlight serve» y recarga.' }));
+  }
+})();
+</script>
+</body>
+</html>

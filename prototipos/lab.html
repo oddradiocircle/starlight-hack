@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starlight Lab</title>
+<style>
+:root {
+  --bg: #0c0d11;
+  --panel: #15171e;
+  --panel-2: #1c1f28;
+  --line: #2a2e3b;
+  --text: #e9eaf0;
+  --muted: #8b90a1;
+  --accent: #56d0ff;
+  --accent-2: #ff5fc8;
+  --ok: #4ade80;
+  --bad: #f87171;
+  --warn: #fbbf24;
+  --on: #ffd84a;
+  --radius: 10px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font: 14px/1.45 "Segoe UI", system-ui, sans-serif; padding-bottom: 150px; }
+code, .mono { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primario { background: var(--accent); color: #04121a; border-color: transparent; font-weight: 600; }
+input[type=text], textarea, select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+textarea { width: 100%; resize: vertical; }
+
+/* Barra superior */
+header.barra { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 12px 20px; background: rgba(12,13,17,.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+header h1 { font-size: 17px; margin: 0; }
+header h1 span { color: var(--accent); }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+.pill.ok::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.progreso { color: var(--muted); font-size: 13px; }
+.progreso b { color: var(--text); font-weight: 600; }
+.derecha { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+.switch { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; cursor: pointer; }
+
+/* Pregunta de Claude */
+#pregunta { position: sticky; top: 58px; z-index: 9; margin: 12px 20px 0; padding: 14px 16px; border-radius: 12px; background: linear-gradient(135deg, #16283a, #2b1834); border: 1px solid var(--accent-2); box-shadow: 0 6px 30px rgba(0,0,0,.5); }
+#pregunta .cab { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent-2); font-weight: 700; }
+#q-texto { margin: 4px 0 10px; font-size: 16px; }
+#pregunta .ops { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#q-nota { flex: 1; min-width: 180px; }
+
+/* Columnas */
+main { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 16px; padding: 16px 20px; align-items: start; }
+@media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+.col > h2 { margin: 0; font-size: 15px; }
+.grupo { margin-top: 16px; }
+.grupo[hidden] { display: none; }
+.grupo > h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600; }
+.cards { display: grid; gap: 8px; }
+.ayuda { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+
+/* Tarjetas */
+.card { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; transition: border-color .12s, box-shadow .12s; }
+.card .fila { display: flex; align-items: center; gap: 8px; }
+.card .punto { width: 10px; height: 10px; border-radius: 50%; background: #3a3f4f; flex: none; transition: background .08s, box-shadow .08s; }
+.card.det .punto { background: var(--ok); }
+.card.activo { border-color: #fff; }
+.card.activo .punto { background: #fff; box-shadow: 0 0 10px #fff; }
+.card .nombre { flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px; }
+.card .nombre:hover { border-color: var(--line); }
+.card .nombre:focus { border-color: var(--accent); background: var(--bg); outline: none; }
+.card code { color: var(--muted); flex: none; }
+.card .luz { padding: 3px 10px; font-size: 12px; flex: none; }
+.card.on .luz { background: var(--on); color: #1a1400; border-color: transparent; font-weight: 600; }
+.card .estado { font-size: 12px; color: var(--muted); margin: 3px 0 0 18px; }
+.card .estado .si { color: var(--ok); }
+.card .estado .no { color: var(--bad); }
+.card .estado .otra { color: var(--warn); }
+.card.nuevo { border-style: dashed; border-color: var(--warn); }
+.resaltado { box-shadow: 0 0 0 2px var(--accent-2), 0 0 18px rgba(255,95,200,.55) !important; }
+.barra { height: 6px; background: var(--bg); border-radius: 3px; margin: 8px 0 0 18px; overflow: hidden; }
+.barra i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.card .num { font-size: 12px; color: var(--muted); margin: 2px 0 0 18px; font-family: Consolas, monospace; }
+.jogv { display: flex; align-items: center; gap: 10px; margin: 6px 0 0 18px; }
+.jogv .num { margin: 0; }
+.dial { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line); position: relative; flex: none; }
+.dial i { position: absolute; top: 2px; left: 50%; width: 4px; height: 10px; margin-left: -2px; background: var(--accent); border-radius: 2px; }
+
+/* Pads */
+.pads { display: grid; grid-template-columns: auto repeat(4, 1fr); gap: 4px; align-items: center; }
+.pad-h { font-size: 11px; color: var(--muted); text-align: center; }
+.pad-f { font-size: 11px; color: var(--muted); padding-right: 6px; white-space: nowrap; }
+.pad { height: 26px; padding: 0; border-radius: 6px; position: relative; }
+.pad.det { border-color: var(--ok); }
+.pad.on { background: var(--on); }
+.pad.activo { background: #fff; }
+.pad.luz-si::after, .pad.luz-no::after, .pad.luz-otra::after { content: ""; position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; }
+.pad.luz-si::after { background: var(--ok); }
+.pad.luz-no::after { background: var(--bad); }
+.pad.luz-otra::after { background: var(--warn); }
+.leyenda { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--muted); margin-top: 8px; }
+.leyenda span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.leyenda .l-det::before { border: 1px solid var(--ok); }
+.leyenda .l-on::before { background: var(--on); }
+.leyenda .l-si::before { background: var(--ok); }
+.leyenda .l-no::before { background: var(--bad); }
+
+/* Controles del centro */
+.caja { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 10px; }
+.fila-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fila-ctl > label { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; color: var(--muted); font-size: 13px; }
+input[type=range] { flex: 1; accent-color: var(--accent); min-width: 100px; }
+output { min-width: 30px; text-align: right; font-family: Consolas, monospace; color: var(--text); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; }
+.seg button.sel { background: var(--accent); color: #04121a; font-weight: 600; }
+.etq { color: var(--muted); font-size: 13px; min-width: 52px; }
+.paleta { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.swatch { height: 30px; padding: 0; border-radius: 6px; border: 2px solid transparent; }
+.swatch.sel { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,.4); }
+.modo-pads { margin-bottom: 8px; }
+#ex-nota { font-family: Consolas, monospace; font-size: 16px; min-width: 64px; text-align: center; }
+#ex-ahi { background: var(--accent-2); color: #22001a; border-color: transparent; font-weight: 700; }
+form.linea { display: flex; gap: 8px; }
+form.linea input { flex: 1; min-width: 0; }
+
+/* Registro */
+#registro-sec { margin: 0 20px; }
+#registro-sec h2 { font-size: 15px; margin: 0 0 8px; }
+#registro { font-family: Consolas, monospace; font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; height: 240px; overflow: auto; }
+#registro div { white-space: pre-wrap; }
+#registro .in { color: var(--accent); }
+#registro .out { color: var(--on); }
+#registro .sis { color: var(--muted); }
+
+/* Marcador de resultados */
+#marcador { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; width: min(760px, calc(100% - 32px)); background: #21242f; border: 1px solid var(--on); border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 40px rgba(0,0,0,.65); }
+#marcador .cab { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+#marcador .cab b { font-size: 15px; }
+#marcador .cab code { color: var(--muted); }
+#marcador .cab button { margin-left: auto; padding: 2px 9px; }
+#marcador .ops { display: flex; flex-wrap: wrap; gap: 8px; }
+#marcador .ops input { flex: 1; min-width: 180px; }
+#m-si { background: var(--ok); color: #03200e; border-color: transparent; font-weight: 600; }
+#m-no { background: var(--bad); color: #2a0606; border-color: transparent; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <h1>Starlight <span>Lab</span></h1>
+  <span id="conexion" class="pill">Conectando…</span>
+  <span class="progreso" id="progreso"></span>
+  <div class="derecha">
+    <label class="switch" title="Suena cuando Claude te deja una pregunta">
+      <input type="checkbox" id="sonido" checked> Sonido
+    </label>
+    <button id="probar-sonido" title="Haz clic una vez para activar el sonido en esta pestaña">Probar sonido</button>
+    <label class="switch" title="Cuando presionas un botón, se prende su propia luz">
+      <input type="checkbox" id="eco"> Eco de luces
+    </label>
+    <button id="reset" title="Apaga todas las luces y devuelve la base a su show normal">Apagar luces</button>
+  </div>
+</header>
+
+<section id="pregunta" hidden aria-live="polite">
+  <div class="cab">Claude pregunta</div>
+  <p id="q-texto"></p>
+  <div class="ops">
+    <span id="q-ops" class="ops"></span>
+    <input type="text" id="q-nota" placeholder="Detalle opcional (color, qué se prendió…)">
+  </div>
+</section>
+
+<main>
+  <section class="col" id="col-A">
+    <h2>Deck A (izquierda)</h2>
+    <div class="grupo" data-g="botones"><h3>Botones</h3><div class="cards"></div></div>
+    <div class="grupo" data-g="perillas"><h3>Perillas y faders</h3><div class="cards"></div></div>
+    <div class="grupo" data-g="jog"><h3>Jog</h3><div class="cards"></div></div>
+    <div class="grupo" data-g="pads">
+      <h3>Pads (clic = probar su luz)</h3>
+      <div class="seg modo-pads" data-deck="A" role="group" aria-label="Modo de pads deck A"><button data-m="0">Hot Cue</button><button data-m="1">Loop</button><button data-m="2">FX</button><button data-m="3">Sampler</button></div>
+      <div class="pads"></div>
+      <div class="leyenda"><span class="l-det">detectado</span><span class="l-on">luz enviada</span><span class="l-si">sí prende</span><span class="l-no">no prende</span></div>
+    </div>
+    <div class="grupo" data-g="shift" hidden><h3>Con Shift presionado</h3><div class="cards"></div></div>
+  </section>
+
+  <section class="col" id="col-C">
+    <h2>Centro</h2>
+    <div class="grupo" data-g="general"><h3>Controles generales</h3><div class="cards"></div></div>
+
+    <div class="grupo">
+      <h3>Luz de la base</h3>
+      <div class="caja">
+        <div class="fila-ctl">
+          <div class="seg" role="group" aria-label="Modo de la base">
+            <button id="base-auto" class="sel">Show normal</button>
+            <button id="base-manual">Manual</button>
+          </div>
+        </div>
+        <div class="fila-ctl"><span class="etq">Lado</span>
+          <div class="seg" id="base-lado" role="group" aria-label="Lado de la base">
+            <button data-l="izq">Izquierda</button><button data-l="der">Derecha</button><button data-l="ambos" class="sel">Ambos</button>
+          </div>
+        </div>
+        <div class="fila-ctl"><span class="etq">Efecto</span>
+          <div class="seg" id="base-efecto" role="group" aria-label="Efecto de la base">
+            <button data-e="0" class="sel">Fijo</button><button data-e="2">Parpadeo</button><button data-e="3">Respira</button>
+          </div>
+        </div>
+        <div class="paleta" id="base-paleta" aria-label="Paleta de 12 colores del firmware"></div>
+        <div class="fila-ctl"><label>Color libre (RGB) <input type="color" id="base-rgb" value="#ff0000"> <output id="base-rgb-v">—</output></label></div>
+        <p class="ayuda">Los controles de abajo mandan el valor crudo de la nota 23 (es un color RGB empaquetado, no una intensidad).</p>
+        <div class="fila-ctl"><label>23 izq. <input type="range" id="base-izq" min="0" max="127" value="0"><output>0</output></label></div>
+        <div class="fila-ctl"><label>23 der. <input type="range" id="base-der" min="0" max="127" value="0"><output>0</output></label></div>
+      </div>
+    </div>
+
+    <div class="grupo">
+      <h3>Explorador de luces ocultas</h3>
+      <p class="ayuda">Prende notas que nadie ha documentado. Si el controlador queda raro, desconecta y reconecta el USB.</p>
+      <div class="caja">
+        <div class="fila-ctl">
+          <label>Canal <select id="ex-canal"></select></label>
+        </div>
+        <div class="fila-ctl">
+          <button id="ex-menos" aria-label="Nota anterior">◀</button>
+          <span id="ex-nota">00</span>
+          <button id="ex-mas" aria-label="Nota siguiente">▶</button>
+          <button id="ex-prender" class="primario">Prender</button>
+          <button id="ex-apagar">Apagar</button>
+        </div>
+        <div class="fila-ctl"><label>Valor <input type="range" id="ex-valor" min="0" max="127" value="127"><output>127</output></label></div>
+        <div class="fila-ctl">
+          <button id="ex-auto">Barrido automático</button>
+          <button id="ex-ahi" hidden>¡Ahí! Se prendió algo</button>
+          <span class="ayuda" id="ex-info"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grupo">
+      <h3>Mensaje MIDI directo</h3>
+      <form class="linea" id="crudo"><input type="text" id="crudo-txt" placeholder="Hex, ej.: 91 07 7F" class="mono"><button>Enviar</button></form>
+    </div>
+
+    <div class="grupo">
+      <h3>Escríbele a Claude</h3>
+      <form id="msg"><textarea id="msg-txt" rows="2" placeholder="Ej.: el botón 91 0F es el de modo Loop"></textarea><div class="fila-ctl" style="margin-top:6px"><button class="primario">Enviar a Claude</button><span class="ayuda" id="msg-ok"></span></div></form>
+    </div>
+
+    <div class="grupo" data-g="otros" hidden><h3>Otros mensajes</h3><div class="cards"></div></div>
+  </section>
+
+  <section class="col" id="col-B">
+    <h2>Deck B (derecha)</h2>
+    <div class="grupo" data-g="botones"><h3>Botones</h3><div class="cards"></div></div>
+    <div class="grupo" data-g="perillas"><h3>Perillas y faders</h3><div class="cards"></div></div>
+    <div class="grupo" data-g="jog"><h3>Jog</h3><div class="cards"></div></div>
+    <div class="grupo" data-g="pads">
+      <h3>Pads (clic = probar su luz)</h3>
+      <div class="seg modo-pads" data-deck="B" role="group" aria-label="Modo de pads deck B"><button data-m="0">Hot Cue</button><button data-m="1">Loop</button><button data-m="2">FX</button><button data-m="3">Sampler</button></div>
+      <div class="pads"></div>
+      <div class="leyenda"><span class="l-det">detectado</span><span class="l-on">luz enviada</span><span class="l-si">sí prende</span><span class="l-no">no prende</span></div>
+    </div>
+    <div class="grupo" data-g="shift" hidden><h3>Con Shift presionado</h3><div class="cards"></div></div>
+  </section>
+</main>
+
+<section id="registro-sec">
+  <h2>Registro</h2>
+  <div id="registro" aria-live="off"></div>
+</section>
+
+<div id="marcador" hidden role="dialog" aria-label="¿Qué pasó con la luz?">
+  <div class="cab"><b id="m-titulo"></b><code id="m-codigo"></code><button id="m-cerrar" aria-label="Cerrar">×</button></div>
+  <div class="ops">
+    <button id="m-si">Se prendió</button>
+    <button id="m-no">No pasó nada</button>
+    <input type="text" id="m-nota" placeholder="Otra cosa: color, se prendió otro botón…">
+    <button id="m-otra">Guardar nota</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = (s, el = document) => el.querySelector(s);
+const hx = n => n.toString(16).toUpperCase().padStart(2, '0');
+const hx3 = m => m.map(hx).join(' ');
+const clave = (st, d1) => hx(st) + ':' + hx(d1);
+const partes = k => k.split(':').map(x => parseInt(x, 16));
+const hora = () => new Date().toLocaleTimeString('es-CO', { hour12: false });
+
+let mapa = { entradas: {}, luces: {} };
+let ledOn = {};
+const cards = {};
+
+async function post(url, body) {
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) registrar('sis', `${hora()}  Error: ${j.error || r.status}`);
+    return j;
+  } catch (e) {
+    registrar('sis', `${hora()}  Sin conexión con el servidor`);
+    return {};
+  }
+}
+const enviar = (msgs, motivo = '', registrarEnvio = true) => post('/api/enviar', { msgs, motivo, registrar: registrarEnvio });
+
+// ------------------------------------------------------------------ catálogo
+const CATALOGO = [];
+const cat = (k, nombre, tipo, col, grupo) => CATALOGO.push({ k, nombre, tipo, col, grupo });
+cat('90:03', 'Shift', 'boton', 'C', 'general');
+cat('B0:00', 'Crossfader', 'cc', 'C', 'general');
+cat('B0:03', '¿Perilla? (B0 03)', 'cc', 'C', 'general');
+cat('B0:04', '¿Perilla? (B0 04)', 'cc', 'C', 'general');
+for (const [d, n] of [['A', 1], ['B', 2]]) {
+  const nt = hx(0x90 | n), cc = hx(0xB0 | n);
+  cat(`${nt}:07`, 'Play', 'boton', d, 'botones');
+  cat(`${nt}:06`, 'Cue', 'boton', d, 'botones');
+  cat(`${nt}:05`, 'Sync', 'boton', d, 'botones');
+  cat(`${nt}:0C`, 'Auriculares (PFL)', 'boton', d, 'botones');
+  if (d === 'A') {
+    cat('91:03', 'Vinyl', 'boton', d, 'botones');
+    cat('91:0F', '¿? (91 0F)', 'boton', d, 'botones');
+    cat('91:10', '¿? (91 10)', 'boton', d, 'botones');
+  }
+  cat(`${cc}:00`, 'Volumen', 'cc', d, 'perillas');
+  cat(`${cc}:01`, 'Filtro', 'cc', d, 'perillas');
+  cat(`${cc}:02`, 'Bajos (EQ)', 'cc', d, 'perillas');
+  cat(`${cc}:08`, 'Tempo (según Mixxx)', 'cc', d, 'perillas');
+  cat(`${nt}:08`, 'Jog: tocar arriba', 'boton', d, 'jog');
+  cat(`${cc}:09`, 'Jog: girar por el borde', 'jog', d, 'jog');
+  cat(`${cc}:0A`, 'Jog: girar tocando arriba', 'jog', d, 'jog');
+}
+const CLAVES_CAT = new Set(CATALOGO.map(c => c.k));
+
+function ubicar(st, d1) {
+  const t = st & 0xF0, ch = st & 0x0F;
+  const col = (ch === 1 || ch === 4 || ch === 6) ? 'A' : (ch === 2 || ch === 5 || ch === 7) ? 'B' : 'C';
+  const tipo = t === 0xB0 ? ((d1 === 0x09 || d1 === 0x0A) ? 'jog' : 'cc') : 'boton';
+  let grupo;
+  if (col === 'C') grupo = ch === 0 ? 'general' : 'otros';
+  else if (ch === 4 || ch === 5) grupo = 'shift';
+  else if (tipo === 'boton') grupo = 'botones';
+  else grupo = tipo === 'jog' ? 'jog' : 'perillas';
+  return { col, grupo, tipo };
+}
+
+function nombreDe(k, defecto) { return (mapa.entradas[k] && mapa.entradas[k].nombre) || defecto; }
+function deckDe(col) { return col === 'A' ? 'deck A' : col === 'B' ? 'deck B' : 'centro'; }
+
+function crearCard(k, nombre, tipo, col, grupo, nuevo = false) {
+  const el = document.createElement('div');
+  el.className = 'card ' + tipo + (nuevo ? ' nuevo' : '');
+  el.dataset.k = k;
+  el.innerHTML = `
+    <div class="fila">
+      <span class="punto"></span>
+      <input class="nombre" spellcheck="false" aria-label="Nombre del control">
+      <code>${k.replace(':', ' ')}</code>
+      ${tipo === 'boton' ? '<button class="luz" title="Prender o apagar su luz">Luz</button>' : ''}
+    </div>
+    ${tipo === 'cc' ? '<div class="barra"><i></i></div><div class="num">—</div>' : ''}
+    ${tipo === 'jog' ? '<div class="jogv"><div class="dial"><i></i></div><span class="num">0 pasos</span></div>' : ''}
+    <div class="estado"></div>`;
+  const input = el.querySelector('.nombre');
+  input.value = nombreDe(k, nombre);
+  input.addEventListener('change', () => {
+    const v = input.value.trim();
+    if (v) post('/api/marcar', { clave: k, campo: 'nombre', valor: v });
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+  const c = { k, el, tipo, col, defecto: nombre, pasos: 0, msb: null, lsb: null };
+  const btn = el.querySelector('.luz');
+  if (btn) btn.addEventListener('click', () => toggleLuz(k, `${input.value} · ${deckDe(col)}`));
+  let destino = $(`#col-${col} [data-g="${grupo}"] .cards`);
+  if (!destino) destino = $('#col-C [data-g="otros"] .cards');
+  destino.appendChild(el);
+  destino.closest('.grupo').hidden = false;
+  cards[k] = c;
+  pintarEstado(c);
+  return c;
+}
+
+function obtenerCard(k, st, d1, desc) {
+  if (cards[k]) return cards[k];
+  const u = ubicar(st, d1);
+  const corto = (desc || k).replace(/ \((presiona|suelta)\)$/, '').replace(/ = \d+$/, '');
+  return crearCard(k, corto, u.tipo, u.col, u.grupo, true);
+}
+
+function pintarEstado(c) {
+  const e = mapa.entradas[c.k] || {};
+  const l = mapa.luces[c.k];
+  c.el.classList.toggle('det', !!e.detectado);
+  const est = c.el.querySelector('.estado');
+  est.textContent = e.detectado ? 'Detectado' : 'Sin tocar';
+  if (l && c.tipo === 'boton') {
+    const s = document.createElement('span');
+    s.className = l.resultado;
+    s.textContent = ' · Luz: ' + ({ si: 'sí prende', no: 'no prende', otra: 'otra cosa' }[l.resultado] || l.resultado) + (l.nota ? ` (${l.nota})` : '');
+    est.appendChild(s);
+  }
+}
+
+// ------------------------------------------------------------------ pads
+const FILAS = ['Hot Cue', 'Hot Cue + Shift', 'Loop', 'Loop + Shift', 'FX', 'FX + Shift', 'Sampler', 'Sampler + Shift'];
+function crearPads(deck, ch) {
+  const cont = $(`#col-${deck} .pads`);
+  cont.appendChild(Object.assign(document.createElement('div'), { className: 'pad-h' }));
+  for (let c = 1; c <= 4; c++) cont.appendChild(Object.assign(document.createElement('div'), { className: 'pad-h', textContent: c }));
+  FILAS.forEach((f, r) => {
+    cont.appendChild(Object.assign(document.createElement('div'), { className: 'pad-f', textContent: f }));
+    for (let c = 0; c < 4; c++) {
+      const d1 = r * 8 + c, k = clave(ch, d1);
+      const b = document.createElement('button');
+      b.className = 'pad';
+      b.dataset.k = k;
+      b.title = `${hx(ch)} ${hx(d1)} · pad ${c + 1} · ${f}`;
+      b.setAttribute('aria-label', `Pad ${c + 1}, ${f}, deck ${deck}`);
+      b.addEventListener('click', () => toggleLuz(k, `Pad ${c + 1} · ${f} · deck ${deck}`));
+      cont.appendChild(b);
+    }
+  });
+}
+const padEl = k => document.querySelector(`.pad[data-k="${k}"]`);
+function pintarPad(el) {
+  const k = el.dataset.k, e = mapa.entradas[k] || {}, l = mapa.luces[k];
+  el.classList.toggle('det', !!e.detectado);
+  el.classList.remove('luz-si', 'luz-no', 'luz-otra');
+  if (l) el.classList.add('luz-' + l.resultado);
+}
+
+// ------------------------------------------------------------------ luces y marcador
+let marc = null;
+async function toggleLuz(k, titulo) {
+  const [st, d1] = partes(k);
+  const on = !ledOn[k];
+  await enviar([[st, d1, on ? 0x7F : 0]], `${on ? 'prender' : 'apagar'} luz: ${titulo}`);
+  if (on) abrirMarcador(k, titulo, 0x7F);
+  else cerrarMarcador();
+}
+function abrirMarcador(k, titulo, valor) {
+  marc = { k, titulo, valor };
+  $('#m-titulo').textContent = `¿Qué pasó? ${titulo}`;
+  $('#m-codigo').textContent = k.replace(':', ' ') + (valor != null ? ' ' + hx(valor) : '');
+  $('#m-nota').value = '';
+  $('#marcador').hidden = false;
+}
+function cerrarMarcador() { $('#marcador').hidden = true; marc = null; }
+async function responderMarcador(resultado) {
+  if (!marc) return;
+  const nota = $('#m-nota').value.trim();
+  if (resultado === 'otra' && !nota) { $('#m-nota').focus(); return; }
+  const m = marc;
+  cerrarMarcador();
+  await post('/api/marcar', { clave: m.k, campo: 'luz', titulo: m.titulo, valor: { resultado, nota, valor: m.valor } });
+}
+$('#m-si').onclick = () => responderMarcador('si');
+$('#m-no').onclick = () => responderMarcador('no');
+$('#m-otra').onclick = () => responderMarcador('otra');
+$('#m-nota').addEventListener('keydown', e => { if (e.key === 'Enter') responderMarcador('otra'); });
+$('#m-cerrar').onclick = cerrarMarcador;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarMarcador(); });
+
+function reflejarEnvio(m) {
+  const [st, d1, d2] = m, t = st & 0xF0;
+  if (t !== 0x90 && t !== 0x80) return;
+  const k = clave(t === 0x80 ? st | 0x10 : st, d1);
+  const on = t === 0x90 && d2 > 0;
+  ledOn[k] = on;
+  if (cards[k]) cards[k].el.classList.toggle('on', on);
+  const p = padEl(k);
+  if (p) p.classList.toggle('on', on);
+  if (k === '90:24') baseModo(on ? 'auto' : 'manual');
+  if (k === '91:23') setSlider('#base-izq', d2);
+  if (k === '92:23') setSlider('#base-der', d2);
+}
+
+// ------------------------------------------------------------------ entrada MIDI
+function flash(el) {
+  el.classList.add('activo');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('activo'), 140);
+}
+function pintarCC(c) {
+  if (c.msb == null) return;
+  const fino = c.lsb != null;
+  const v = fino ? ((c.msb << 7) | c.lsb) / 16383 : c.msb / 127;
+  c.el.querySelector('.barra i').style.width = (v * 100).toFixed(1) + '%';
+  c.el.querySelector('.num').textContent = `${(v * 100).toFixed(1)} %  ·  ${c.msb}${fino ? ' / fino ' + c.lsb : ''}`;
+}
+function marcarDetectado(k, desc) {
+  const e = mapa.entradas[k] || (mapa.entradas[k] = {});
+  if (e.detectado) return;
+  e.detectado = true;
+  if (cards[k]) pintarEstado(cards[k]);
+  const p = padEl(k);
+  if (p) pintarPad(p);
+  actualizarProgreso();
+}
+function alMidi(ev, silencioso = false) {
+  let { st, d1, d2 } = ev;
+  const t = st & 0xF0;
+  if (t === 0x80) { st |= 0x10; d2 = 0; }
+  const ch = st & 0x0F, k = clave(st, d1);
+  if (t === 0x90 || t === 0x80) {
+    const presionado = d2 > 0;
+    const p = (ch === 6 || ch === 7) ? padEl(k) : null;
+    const el = p || obtenerCard(k, st, d1, ev.desc).el;
+    el.classList.toggle('activo', presionado);
+    if (presionado && !silencioso) marcarDetectado(k);
+    return;
+  }
+  if (t === 0xB0) {
+    if (d1 >= 0x20 && d1 < 0x40) {
+      const cm = cards[clave(st, d1 - 0x20)];
+      if (cm && cm.tipo === 'cc') { cm.lsb = d2; pintarCC(cm); return; }
+    }
+    const c = obtenerCard(k, st, d1, ev.desc);
+    if (c.tipo === 'jog') {
+      if (silencioso) return;
+      c.pasos += d2 < 64 ? d2 : d2 - 128;
+      c.el.querySelector('.dial').style.transform = `rotate(${c.pasos * 4}deg)`;
+      c.el.querySelector('.num').textContent = `${c.pasos} pasos`;
+    } else {
+      c.msb = d2;
+      pintarCC(c);
+    }
+    if (!silencioso) { flash(c.el); marcarDetectado(k); }
+  }
+}
+
+function actualizarProgreso() {
+  const det = CATALOGO.filter(c => (mapa.entradas[c.k] || {}).detectado).length;
+  const pads = document.querySelectorAll('.pad.det').length;
+  const luces = Object.keys(mapa.luces).length;
+  $('#progreso').innerHTML = `Controles <b>${det}/${CATALOGO.length}</b> · Pads <b>${pads}/64</b> · Luces probadas <b>${luces}</b>`;
+}
+
+// ------------------------------------------------------------------ base
+let baseActual = 'auto';
+function baseModo(m) {
+  baseActual = m;
+  $('#base-auto').classList.toggle('sel', m === 'auto');
+  $('#base-manual').classList.toggle('sel', m === 'manual');
+}
+function setSlider(sel, v) { const r = $(sel); r.value = v; r.nextElementSibling.value = v; }
+$('#base-auto').onclick = () => enviar([[0x90, 0x24, 0x7F]], 'base: show normal');
+$('#base-manual').onclick = () => enviar([[0x90, 0x24, 0x00]], 'base: control manual');
+for (const [sel, st, lado] of [['#base-izq', 0x91, 'izquierda'], ['#base-der', 0x92, 'derecha']]) {
+  const r = $(sel);
+  r.addEventListener('input', () => {
+    r.nextElementSibling.value = r.value;
+    const msgs = baseActual === 'manual' ? [] : [[0x90, 0x24, 0]];
+    msgs.push([st, 0x23, +r.value]);
+    enviar(msgs, '', false);
+  });
+  r.addEventListener('change', () => {
+    enviar([[st, 0x23, +r.value]], `base ${lado} en ${r.value}`);
+    abrirMarcador(clave(st, 0x23), `Base ${lado} en ${r.value}`, +r.value);
+  });
+}
+
+// ------------------------------------------------------------------ base: paleta, efecto y RGB (hallados en el firmware)
+const PALETA = [[200, 0, 100], [200, 60, 60], [255, 0, 0], [255, 92, 0], [255, 240, 16], [118, 200, 16],
+  [0, 255, 0], [50, 255, 160], [16, 200, 255], [0, 0, 255], [60, 40, 200], [100, 0, 200]];
+const NOMBRES_COLOR = ['Fucsia', 'Salmón', 'Rojo', 'Naranja', 'Amarillo', 'Lima', 'Verde', 'Aguamarina', 'Celeste', 'Azul', 'Índigo', 'Morado'];
+const NOMBRES_EFECTO = { 0: 'fijo', 2: 'parpadeo', 3: 'respira' };
+let baseLado = 'ambos', baseEfecto = 0, baseColor = 3;
+const ladosBase = () => baseLado === 'izq' ? [0x91] : baseLado === 'der' ? [0x92] : [0x91, 0x92];
+function aplicarPaleta() {
+  const v = 13 * baseEfecto + baseColor;
+  enviar([[0x90, 0x24, 0], ...ladosBase().map(ch => [ch, 0x22, v])],
+    `base ${baseLado}: ${NOMBRES_COLOR[baseColor - 1]}, ${NOMBRES_EFECTO[baseEfecto]} (22 = ${hx(v)})`);
+}
+PALETA.forEach(([r, g, b], i) => {
+  const s = document.createElement('button');
+  s.className = 'swatch' + (i + 1 === baseColor ? ' sel' : '');
+  s.style.background = `rgb(${r},${g},${b})`;
+  s.title = `${i + 1} · ${NOMBRES_COLOR[i]}`;
+  s.setAttribute('aria-label', `Color ${NOMBRES_COLOR[i]}`);
+  s.onclick = () => {
+    baseColor = i + 1;
+    document.querySelectorAll('.swatch').forEach(x => x.classList.toggle('sel', x === s));
+    aplicarPaleta();
+  };
+  $('#base-paleta').appendChild(s);
+});
+function grupoSeg(sel, attr, alElegir) {
+  document.querySelectorAll(`${sel} button`).forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll(`${sel} button`).forEach(x => x.classList.toggle('sel', x === b));
+    alElegir(b.dataset[attr]);
+  }));
+}
+grupoSeg('#base-lado', 'l', v => { baseLado = v; });
+grupoSeg('#base-efecto', 'e', v => { baseEfecto = +v; aplicarPaleta(); });
+function rgb7(hex) {
+  const c = k => parseInt(hex.slice(k, k + 2), 16) / 255;
+  return (Math.round(c(1) * 3) << 5) | (Math.round(c(3) * 7) << 2) | Math.round(c(5) * 3);
+}
+$('#base-rgb').addEventListener('input', e => {
+  const v = rgb7(e.target.value);
+  $('#base-rgb-v').value = hx(v);
+  enviar([[0x90, 0x24, 0], ...ladosBase().map(ch => [ch, 0x23, v])], '', false);
+});
+$('#base-rgb').addEventListener('change', e => {
+  const v = rgb7(e.target.value);
+  enviar(ladosBase().map(ch => [ch, 0x23, v]), `base ${baseLado}: RGB ${e.target.value} (23 = ${hx(v)})`);
+});
+
+// ------------------------------------------------------------------ modo de pads desde el PC (91/92 0F-12 7F)
+const NOMBRES_MODO = ['Hot Cue', 'Loop', 'FX', 'Sampler'];
+document.querySelectorAll('.modo-pads').forEach(grupo => {
+  const deck = grupo.dataset.deck, ch = deck === 'A' ? 0x91 : 0x92;
+  grupo.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    grupo.querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
+    const m = +b.dataset.m;
+    enviar([[ch, 0x0F + m, 0x7F]], `modo de pads ${NOMBRES_MODO[m]} deck ${deck}`);
+  }));
+});
+
+// ------------------------------------------------------------------ explorador
+const CANALES = { 0x90: 'Global', 0x91: 'Deck A', 0x92: 'Deck B', 0x94: 'Deck A + Shift', 0x95: 'Deck B + Shift', 0x96: 'Pads A', 0x97: 'Pads B' };
+const exCanal = $('#ex-canal');
+for (let s = 0x90; s <= 0x9F; s++) exCanal.add(new Option(`${hx(s)} · ${CANALES[s] || 'canal ' + ((s & 15) + 1)}`, s));
+exCanal.value = 0x91;
+let exNota = 0, exOn = false, exTimer = null;
+const exClave = () => clave(+exCanal.value, exNota);
+function exPintar() {
+  $('#ex-nota').textContent = hx(exNota);
+  $('#ex-info').textContent = exTimer ? `Probando ${exClave().replace(':', ' ')}…` : '';
+}
+function exEnviar(on, registrarEnvio, motivo) {
+  exOn = on;
+  return enviar([[+exCanal.value, exNota, on ? +$('#ex-valor').value : 0]], motivo || '', registrarEnvio);
+}
+async function exMover(delta) {
+  const estaba = exOn;
+  if (estaba) await exEnviar(false, false);
+  exNota = (exNota + delta + 128) % 128;
+  exPintar();
+  if (estaba || exTimer) await exEnviar(true, false);
+}
+$('#ex-menos').onclick = () => exMover(-1);
+$('#ex-mas').onclick = () => exMover(1);
+$('#ex-prender').onclick = async () => {
+  await exEnviar(true, true, `explorador ${exClave().replace(':', ' ')}`);
+  abrirMarcador(exClave(), `Explorador ${exClave().replace(':', ' ')}`, +$('#ex-valor').value);
+};
+$('#ex-apagar').onclick = () => { exEnviar(false, false); cerrarMarcador(); };
+$('#ex-valor').addEventListener('input', e => {
+  e.target.nextElementSibling.value = e.target.value;
+  if (exOn) exEnviar(true, false);
+});
+$('#ex-valor').addEventListener('change', e => {
+  if (exOn) abrirMarcador(exClave(), `Explorador ${exClave().replace(':', ' ')} con valor ${e.target.value}`, +e.target.value);
+});
+function exParar() {
+  clearInterval(exTimer);
+  exTimer = null;
+  $('#ex-auto').textContent = 'Barrido automático';
+  $('#ex-ahi').hidden = true;
+  exPintar();
+}
+$('#ex-auto').onclick = async () => {
+  if (exTimer) { exParar(); await exEnviar(false, false); return; }
+  await exEnviar(true, false);
+  exTimer = setInterval(() => exMover(1), 1200);
+  $('#ex-auto').textContent = 'Detener barrido';
+  $('#ex-ahi').hidden = false;
+  exPintar();
+};
+$('#ex-ahi').onclick = () => {
+  exParar();
+  const prev = clave(+exCanal.value, (exNota + 127) % 128).replace(':', ' ');
+  abrirMarcador(exClave(), `Barrido: ${exClave().replace(':', ' ')} (o la anterior, ${prev})`, +$('#ex-valor').value);
+};
+exPintar();
+
+// ------------------------------------------------------------------ mensaje directo y a Claude
+$('#crudo').addEventListener('submit', e => {
+  e.preventDefault();
+  const b = $('#crudo-txt').value.trim().split(/[\s,]+/).map(x => parseInt(x, 16));
+  if (b.length < 2 || b.length > 3 || b.some(isNaN) || b[0] < 0x80) {
+    registrar('sis', `${hora()}  Escribe 2 o 3 números en hexadecimal; el primero de 80 a EF. Ej.: 91 07 7F`);
+    return;
+  }
+  const m = [b[0], b[1], b[2] ?? 0];
+  enviar([m], `mensaje directo ${hx3(m)}`);
+  if ((m[0] & 0xF0) === 0x90 && m[2] > 0) abrirMarcador(clave(m[0], m[1]), `Mensaje directo ${hx3(m)}`, m[2]);
+});
+$('#msg').addEventListener('submit', async e => {
+  e.preventDefault();
+  const texto = $('#msg-txt').value.trim();
+  if (!texto) return;
+  await post('/api/comentario', { texto });
+  $('#msg-txt').value = '';
+  $('#msg-ok').textContent = `Enviado ${hora()}`;
+});
+
+// ------------------------------------------------------------------ sonido de aviso
+// El navegador solo deja sonar audio después de un clic o una tecla en la página.
+let audioCtx = null;
+function asegurarAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) { audioCtx = null; }
+}
+document.addEventListener('pointerdown', asegurarAudio, { capture: true });
+document.addEventListener('keydown', asegurarAudio, { capture: true });
+function sonarPregunta() {
+  if (!$('#sonido').checked) return;
+  asegurarAudio();
+  if (!audioCtx || audioCtx.state !== 'running') return;
+  const t0 = audioCtx.currentTime;
+  [[880, 0], [1320, 0.16]].forEach(([f, dt]) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t0 + dt);
+    g.gain.exponentialRampToValueAtTime(0.3, t0 + dt + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.35);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t0 + dt);
+    o.stop(t0 + dt + 0.4);
+  });
+}
+$('#probar-sonido').onclick = () => { asegurarAudio(); setTimeout(sonarPregunta, 50); };
+const TITULO = document.title;
+
+// ------------------------------------------------------------------ pregunta de Claude
+let preguntaActual = null;
+function mostrarPregunta(p) {
+  document.querySelectorAll('.resaltado').forEach(e => e.classList.remove('resaltado'));
+  preguntaActual = p;
+  document.title = p ? '● Claude pregunta — ' + TITULO : TITULO;
+  if (!p) { $('#pregunta').hidden = true; return; }
+  $('#q-texto').textContent = p.texto;
+  const ops = $('#q-ops');
+  ops.innerHTML = '';
+  (p.opciones && p.opciones.length ? p.opciones : ['Sí', 'No']).forEach(op => {
+    const b = document.createElement('button');
+    b.textContent = op;
+    b.onclick = () => post('/api/respuesta', { id: p.id, respuesta: op, nota: $('#q-nota').value.trim() });
+    ops.appendChild(b);
+  });
+  $('#q-nota').value = '';
+  (p.resaltar || []).forEach(k => {
+    if (cards[k]) cards[k].el.classList.add('resaltado');
+    const pd = padEl(k);
+    if (pd) pd.classList.add('resaltado');
+  });
+  $('#pregunta').hidden = false;
+}
+
+// ------------------------------------------------------------------ registro
+const REG = $('#registro');
+let ultimaReg = null;
+function registrar(clase, texto, unir = null) {
+  if (unir && ultimaReg && ultimaReg.dataset.u === unir) { ultimaReg.textContent = texto; return; }
+  const d = document.createElement('div');
+  d.className = clase;
+  d.textContent = texto;
+  if (unir) d.dataset.u = unir;
+  REG.prepend(d);
+  ultimaReg = d;
+  while (REG.children.length > 200) REG.lastChild.remove();
+}
+
+// ------------------------------------------------------------------ eventos del servidor
+function aplicarEstado(ev) {
+  mapa = ev.mapa || { entradas: {}, luces: {} };
+  mapa.entradas = mapa.entradas || {};
+  mapa.luces = mapa.luces || {};
+  for (const c of Object.values(cards)) {
+    const input = c.el.querySelector('.nombre');
+    if (document.activeElement !== input) input.value = nombreDe(c.k, c.defecto);
+    pintarEstado(c);
+  }
+  document.querySelectorAll('.pad').forEach(pintarPad);
+  (ev.ultimos || []).forEach(m => alMidi({ st: m[0], d1: m[1], d2: m[2] }, true));
+  $('#eco').checked = !!ev.eco;
+  mostrarPregunta(ev.pregunta);
+  actualizarProgreso();
+}
+function manejar(ev) {
+  switch (ev.tipo) {
+    case 'estado':
+      aplicarEstado(ev);
+      registrar('sis', `${hora()}  Conectado al controlador`);
+      break;
+    case 'midi': {
+      alMidi(ev);
+      const esCC = (ev.st & 0xF0) === 0xB0;
+      registrar('in', `${hora()}  ← ${hx3([ev.st, ev.d1, ev.d2])}  ${ev.desc}`, esCC ? 'in:' + ev.clave : null);
+      break;
+    }
+    case 'enviado':
+      ev.msgs.forEach(reflejarEnvio);
+      if (ev.msgs.length) registrar('out', `${hora()}  → ${ev.msgs.map(hx3).join(' | ')}  ${ev.motivo || ''}${ev.origen === 'claude' ? '  (Claude)' : ''}`, ev.motivo ? null : 'out:' + clave(ev.msgs[0][0], ev.msgs[0][1]));
+      break;
+    case 'marca':
+      if (ev.campo === 'nombre') {
+        (mapa.entradas[ev.clave] = mapa.entradas[ev.clave] || {}).nombre = ev.valor;
+        const c = cards[ev.clave];
+        if (c && document.activeElement !== c.el.querySelector('.nombre')) c.el.querySelector('.nombre').value = ev.valor;
+      } else if (ev.campo === 'luz') {
+        mapa.luces[ev.clave] = ev.valor;
+      }
+      if (cards[ev.clave]) pintarEstado(cards[ev.clave]);
+      if (padEl(ev.clave)) pintarPad(padEl(ev.clave));
+      actualizarProgreso();
+      registrar('sis', `${hora()}  Guardado: ${ev.clave.replace(':', ' ')} ${ev.campo === 'nombre' ? '= «' + ev.valor + '»' : '→ luz ' + ev.valor.resultado + (ev.valor.nota ? ' (' + ev.valor.nota + ')' : '')}`);
+      break;
+    case 'pregunta':
+      mostrarPregunta(ev.pregunta);
+      if (ev.pregunta) {
+        sonarPregunta();
+        registrar('sis', `${hora()}  Claude pregunta: ${ev.pregunta.texto}`);
+      }
+      break;
+    case 'eco':
+      $('#eco').checked = ev.activo;
+      break;
+    case 'reset':
+      ledOn = {};
+      document.querySelectorAll('.card.on, .pad.on').forEach(e => e.classList.remove('on'));
+      baseModo('auto');
+      setSlider('#base-izq', 0);
+      setSlider('#base-der', 0);
+      exOn = false;
+      registrar('sis', `${hora()}  Luces apagadas, base en show normal`);
+      break;
+  }
+}
+function conectar() {
+  const es = new EventSource('/eventos');
+  const pill = $('#conexion');
+  es.onopen = () => { pill.textContent = 'Conectado'; pill.classList.add('ok'); };
+  es.onerror = () => { pill.textContent = 'Reconectando…'; pill.classList.remove('ok'); };
+  es.onmessage = e => { try { manejar(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+}
+
+$('#eco').addEventListener('change', e => post('/api/eco', { activo: e.target.checked }));
+$('#reset').onclick = () => { exParar(); cerrarMarcador(); post('/api/reset', {}); };
+
+// ------------------------------------------------------------------ arranque
+CATALOGO.forEach(c => crearCard(c.k, c.nombre, c.tipo, c.col, c.grupo));
+crearPads('A', 0x96);
+crearPads('B', 0x97);
+actualizarProgreso();
+conectar();
+</script>
+</body>
+</html>
