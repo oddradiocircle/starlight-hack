@@ -71,13 +71,14 @@ También funciona en el celular. Mira [Desde otro equipo](#desde-otro-equipo-o-e
 
 ### Perfiles
 
-Un perfil dice qué hace cada control en el computador. Vienen cuatro:
+Un perfil dice qué hace cada control en el computador. Vienen cinco:
 
 | Perfil | Qué hace |
 |---|---|
 | Claude Code | Play A envía, Cue A interrumpe, Sync A cambia de modo y los pads A responden 1, 2 y 3. La base muestra el estado de tus sesiones. |
 | Escritorio | Play pausa la música. Cue y Sync pasan a la canción anterior o a la siguiente. Volume A es el volumen de Windows. |
 | Luces | La base sigue el ritmo de lo que suena en el computador. |
+| Mezclador | Volume A es el volumen de Spotify y Volume B el de Chrome. El crossfader reparte entre los dos y PFL silencia cada uno. La base muestra el volumen: verde para Spotify, azul para Chrome. Al salir del perfil, cada app vuelve a su volumen. Para usar otras apps, cambia `APPS` en `starlight/perfiles_incluidos/mezclador.py`. |
 | Navegar | Jog A desplaza arriba y abajo, Jog B a los lados. Shift + Jog A hace zoom. |
 
 Para cambiar de perfil:
@@ -305,7 +306,7 @@ Este proyecto empezó como un juego y creció. Nos ayuda mucho que lo pruebes:
 - **Cuéntanos cómo te fue.** Abre un [issue](https://github.com/oddradiocircle/starlight-hack/issues) con lo que funcionó y lo que no. Nos interesa sobre todo **macOS y Linux**, que aún no hemos probado.
 - **Comparte tus perfiles.** Exporta tu perfil y súbelo en un issue, con una línea que diga para qué sirve.
 - **¿Tienes otro controlador Hercules?** Prueba los mensajes de [Lo que sabemos del aparato](#lo-que-sabemos-del-aparato) y cuéntanos qué pasa.
-- **Ideas que tenemos en lista:** un perfil mezclador (una perilla por app: Spotify, el navegador…), un puente con Mixxx y un servidor MCP para que los agentes de IA usen la Starlight.
+- **Ideas que tenemos en lista:** un puente con Mixxx y un servidor MCP para que los agentes de IA usen la Starlight.
 
 Los cambios al código llegan por pull request. Si es algo grande, abre antes un issue para conversarlo.
 

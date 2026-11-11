@@ -241,6 +241,16 @@ def volumen_app(proceso: str, valor: float):
         raise AccionNoDisponible(f"«{proceso}» no está sonando ahora.")
 
 
+def volumen_app_actual(proceso: str) -> float | None:
+    """Volumen actual de una app, de 0 a 1, o None si no está sonando."""
+    a = _audio()
+    buscado = proceso.lower().removesuffix(".exe")
+    for s in a.AudioUtilities.GetAllSessions():
+        if s.Process and s.Process.name().lower().removesuffix(".exe") == buscado:
+            return float(s.SimpleAudioVolume.GetMasterVolume())
+    return None
+
+
 def nivel() -> tuple[float, float]:
     """Pico de lo que suena ahora (izquierda, derecha), de 0 a 1. Lee el medidor de Windows: no graba nada."""
     a = _audio()
