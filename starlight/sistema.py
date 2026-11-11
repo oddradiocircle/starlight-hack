@@ -9,6 +9,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 
 WIN, MAC = sys.platform == "win32", sys.platform == "darwin"
@@ -172,21 +173,66 @@ def _audio():
         return _hilo
     try:
         import comtypes
-        from comtypes import CLSCTX_ALL
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        import psutil
+        from comtypes import CLSCTX_ALL, CLSCTX_INPROC_SERVER
+        from pycaw.constants import CLSID_MMDeviceEnumerator
+        from pycaw.pycaw import (IAudioEndpointVolume, IAudioSessionControl2, IAudioSessionManager2,
+                                 IMMDeviceEnumerator, ISimpleAudioVolume)
     except ImportError as e:
         raise AccionNoDisponible("Falta pycaw. Instálalo con: pip install pycaw") from e
     import warnings
 
     warnings.filterwarnings("ignore", module="pycaw")
     comtypes.CoInitialize()
-    salida = AudioUtilities.GetSpeakers()
-    dev = getattr(salida, "_dev", salida)
-    _hilo.volumen = dev.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None).QueryInterface(IAudioEndpointVolume)
-    _hilo.medidor = dev.Activate(_IMedidor._iid_, CLSCTX_ALL, None).QueryInterface(_IMedidor)
-    _hilo.AudioUtilities = AudioUtilities
+    _hilo.CLSCTX_ALL, _hilo.psutil = CLSCTX_ALL, psutil
+    _hilo.IAudioEndpointVolume, _hilo.IAudioSessionManager2 = IAudioEndpointVolume, IAudioSessionManager2
+    _hilo.IAudioSessionControl2, _hilo.ISimpleAudioVolume = IAudioSessionControl2, ISimpleAudioVolume
+    # AudioUtilities.GetSpeakers() de pycaw tarda ~0,4 s: la salida se le pide directo a Windows (~15 ms)
+    _hilo.enumerador = comtypes.CoCreateInstance(CLSID_MMDeviceEnumerator, IMMDeviceEnumerator, CLSCTX_INPROC_SERVER)
+    _hilo.nombres = {}
+    _conectar_salida(_hilo, _hilo.enumerador.GetDefaultAudioEndpoint(0, 1))  # 0 = salida, 1 = multimedia
     _hilo.listo = True
     return _hilo
+
+
+def _conectar_salida(a, dev):
+    """Guarda los objetos de la salida de audio predeterminada: volumen, medidor y sesiones de las apps."""
+    a.dev_id, a.revisado = dev.GetId(), time.time()
+    a.volumen = dev.Activate(a.IAudioEndpointVolume._iid_, a.CLSCTX_ALL, None).QueryInterface(a.IAudioEndpointVolume)
+    a.medidor = dev.Activate(_IMedidor._iid_, a.CLSCTX_ALL, None).QueryInterface(_IMedidor)
+    a.sesiones = dev.Activate(a.IAudioSessionManager2._iid_, a.CLSCTX_ALL, None).QueryInterface(a.IAudioSessionManager2)
+
+
+def _nombre_proceso(a, pid: int):
+    if pid not in a.nombres:
+        if len(a.nombres) > 500:
+            a.nombres.clear()
+        try:
+            a.nombres[pid] = a.psutil.Process(pid).name().lower().removesuffix(".exe")
+        except Exception:
+            a.nombres[pid] = None
+    return a.nombres[pid]
+
+
+def _sesiones_app(proceso: str) -> list:
+    """Controles de volumen de las sesiones de audio de una app. Tarda unos 2 ms
+    (GetAllSessions de pycaw tarda ~0,4 s, y eso se sentía como un segundo de retraso en las perillas)."""
+    a = _audio()
+    ahora = time.time()
+    if ahora - a.revisado > 2.0:  # ¿cambiaste la salida, por ejemplo a audífonos Bluetooth? entonces se sigue a la nueva
+        a.revisado = ahora
+        dev = a.enumerador.GetDefaultAudioEndpoint(0, 1)
+        if dev.GetId() != a.dev_id:
+            _conectar_salida(a, dev)
+    buscado = proceso.lower().removesuffix(".exe")
+    lista = a.sesiones.GetSessionEnumerator()
+    hallados = []
+    for i in range(lista.GetCount()):
+        ctl = lista.GetSession(i)
+        pid = ctl.QueryInterface(a.IAudioSessionControl2).GetProcessId()
+        if pid and _nombre_proceso(a, pid) == buscado:
+            hallados.append(ctl.QueryInterface(a.ISimpleAudioVolume))
+    return hallados
 
 
 if WIN:
@@ -230,25 +276,17 @@ def volumen_cambiar(delta: float):
 
 def volumen_app(proceso: str, valor: float):
     """Volumen de una app que está sonando, de 0 a 1. proceso: «spotify», «chrome»…"""
-    a = _audio()
-    buscado = proceso.lower().removesuffix(".exe")
-    hallada = False
-    for s in a.AudioUtilities.GetAllSessions():
-        if s.Process and s.Process.name().lower().removesuffix(".exe") == buscado:
-            s.SimpleAudioVolume.SetMasterVolume(min(1.0, max(0.0, float(valor))), None)
-            hallada = True
-    if not hallada:
+    sesiones = _sesiones_app(proceso)
+    if not sesiones:
         raise AccionNoDisponible(f"«{proceso}» no está sonando ahora.")
+    for s in sesiones:
+        s.SetMasterVolume(min(1.0, max(0.0, float(valor))), None)
 
 
 def volumen_app_actual(proceso: str) -> float | None:
     """Volumen actual de una app, de 0 a 1, o None si no está sonando."""
-    a = _audio()
-    buscado = proceso.lower().removesuffix(".exe")
-    for s in a.AudioUtilities.GetAllSessions():
-        if s.Process and s.Process.name().lower().removesuffix(".exe") == buscado:
-            return float(s.SimpleAudioVolume.GetMasterVolume())
-    return None
+    sesiones = _sesiones_app(proceso)
+    return float(sesiones[0].GetMasterVolume()) if sesiones else None
 
 
 def nivel() -> tuple[float, float]:
