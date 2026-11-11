@@ -12,15 +12,15 @@ manda muchos valores seguidos, solo se envía el último (como mucho 8 por segun
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import queue
 import socket
 import threading
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
+from urllib.parse import urlsplit
 
 HOGAR = Path(os.environ.get("STARLIGHT_HOGAR") or Path.home() / ".starlight")
 CONFIG = HOGAR / "casa.json"
@@ -42,21 +42,61 @@ def _contexto_puente():
     return c
 
 
+_conexiones = threading.local()  # una conexión abierta por equipo y por hilo
+_SIN_RESPUESTA = "No hubo respuesta. Revisa la dirección y que el equipo esté encendido en tu red."
+
+
+def _conexion(esquema: str, host: str, puerto: int, espera: float, puente: bool):
+    pool = getattr(_conexiones, "pool", None)
+    if pool is None:
+        pool = _conexiones.pool = {}
+    clave = (esquema, host, puerto)
+    k = pool.get(clave)
+    if k is None:
+        k = (http.client.HTTPSConnection(host, puerto, timeout=espera, context=_contexto_puente() if puente else None)
+             if esquema == "https" else http.client.HTTPConnection(host, puerto, timeout=espera))
+        pool[clave] = k
+    elif k.sock is not None:
+        k.sock.settimeout(espera)
+    return clave, k
+
+
 def _pedir(metodo: str, url: str, cuerpo=None, token: str | None = None, espera: float = 6.0, puente: bool = False):
+    """Una petición HTTP que reutiliza la conexión con cada equipo. Así el puente Hue no negocia el cifrado
+    en cada orden: con conexión nueva tardaba ~0,4 s; reutilizada, ~30 ms."""
     datos = json.dumps(cuerpo).encode() if cuerpo is not None else None
     cab = {"Content-Type": "application/json"}
     if token:
         cab["Authorization"] = f"Bearer {token}"
-    req = urllib.request.Request(url, data=datos, method=metodo, headers=cab)
-    try:
-        with urllib.request.urlopen(req, timeout=espera, context=_contexto_puente() if puente else None) as r:
-            texto = r.read().decode("utf-8", "replace")
-    except urllib.error.HTTPError as e:
-        if e.code == 401:
-            raise CasaError("Home Assistant no aceptó el token. Crea uno nuevo en tu perfil de Home Assistant.") from None
-        raise CasaError(f"Respondió con el error {e.code}.") from None
-    except (urllib.error.URLError, socket.timeout, OSError):
-        raise CasaError("No hubo respuesta. Revisa la dirección y que el equipo esté encendido en tu red.") from None
+    p = urlsplit(url)
+    if p.scheme not in ("http", "https") or not p.hostname:
+        raise CasaError("Escribe la dirección completa, por ejemplo http://homeassistant.local:8123.")
+    ruta = (p.path or "/") + (f"?{p.query}" if p.query else "")
+    puerto = p.port or (443 if p.scheme == "https" else 80)
+    for intento in (1, 2):
+        clave, k = _conexion(p.scheme, p.hostname, puerto, espera, puente)
+        reutilizada = k.sock is not None
+        try:
+            k.request(metodo, ruta, body=datos, headers=cab)
+            r = k.getresponse()
+            estado, texto = r.status, r.read().decode("utf-8", "replace")
+            if r.will_close:
+                k.close()
+                _conexiones.pool.pop(clave, None)
+            break
+        except (http.client.HTTPException, OSError) as e:
+            k.close()
+            _conexiones.pool.pop(clave, None)
+            # Una conexión guardada que el equipo cerró por estar quieta falla al primer uso: se reintenta una
+            # vez con una nueva. Si se acabó el tiempo de espera no se reintenta (y un «alternar» no se repite).
+            cerrada = isinstance(e, (http.client.RemoteDisconnected, ConnectionResetError, ConnectionAbortedError,
+                                     BrokenPipeError))
+            if intento == 2 or not reutilizada or not cerrada:
+                raise CasaError(_SIN_RESPUESTA) from None
+    if estado == 401:
+        raise CasaError("Home Assistant no aceptó el token. Crea uno nuevo en tu perfil de Home Assistant.")
+    if estado >= 400:
+        raise CasaError(f"Respondió con el error {estado}.")
     try:
         return json.loads(texto) if texto.strip() else {}
     except ValueError:
