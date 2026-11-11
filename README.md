@@ -2,10 +2,11 @@
 
 **Usa tu Hercules DJControl Starlight para mucho más que mezclar.** Sus botones, perillas y pads pueden manejar tu computador, las luces de tu casa y tus sesiones de Claude Code. Su luz de colores te avisa lo que pasa.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/tablero-oscuro.png">
-  <img src="docs/img/tablero-claro.png" alt="El tablero de starlight: un dibujo de la Starlight que se mueve cuando tocas el aparato, los controles de la luz de la base, los modos de los pads y tres sesiones de Claude Code, una de ellas con una pregunta y sus opciones en los pads A1, A2 y A3.">
-</picture>
+<p align="center">
+  <img src="docs/img/starlight-show.gif" width="480" alt="La Starlight en una mesa a oscuras. Presionan Play A, la luz de la base se enciende, los pads se encienden de izquierda a derecha y los botones siguen un ritmo. Luego titilan los pads 1, 2 y 3, como cuando Claude Code hace una pregunta, y el pad 1 queda fijo al responder.">
+  <br>
+  <sub>El show de <a href="scripts/show.py"><code>scripts/show.py</code></a>. Al final, la Starlight avisa que Claude Code hizo una pregunta: titilan los pads de las opciones y respondes con uno.</sub>
+</p>
 
 Proyecto independiente, sin relación con Hercules. Probado en Windows 11 con la versión 1.0.0.0 del aparato. Tiene código para macOS y Linux, pero aún no lo hemos probado ahí.
 
@@ -45,6 +46,8 @@ Se abre el tablero en tu navegador, en `http://127.0.0.1:8765`.
 
 **3. Toca un control de la Starlight.** El dibujo del tablero se mueve contigo y abajo ves qué control fue y su mensaje.
 
+**4. Mira el show.** En otra terminal, dentro de la carpeta, corre `.venv\Scripts\python scripts\show.py` (en macOS o Linux: `.venv/bin/python scripts/show.py`). Cuando Play A titile, presiónalo: es el show del video de arriba. Al terminar, todo vuelve a quedar como estaba.
+
 Para no escribir `.venv\Scripts\` cada vez, activa el entorno con `.venv\Scripts\activate` (en macOS o Linux: `source .venv/bin/activate`).
 
 ### Si algo falla
@@ -59,6 +62,11 @@ Para no escribir `.venv\Scripts\` cada vez, activa el entorno con `.venv\Scripts
 ## Úsala
 
 ### El tablero
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/tablero-oscuro.png">
+  <img src="docs/img/tablero-claro.png" alt="El tablero de starlight: un dibujo de la Starlight que se mueve cuando tocas el aparato, los controles de la luz de la base, los modos de los pads y tres sesiones de Claude Code, una de ellas con una pregunta y sus opciones en los pads A1, A2 y A3.">
+</picture>
 
 Es la página que abre el servidor. Muestra la Starlight en vivo y te deja:
 
@@ -324,7 +332,7 @@ starlight/
   casa.py           Home Assistant y Philips Hue
   cli.py            los comandos starlight …
   web/              el tablero, el editor, Casa y Pruebas
-scripts/            hooks de ejemplo para Claude Code y Wave
+scripts/            hooks de ejemplo para Claude Code y Wave, y el show de luces
 prototipos/         las primeras versiones, como referencia
 ```
 
